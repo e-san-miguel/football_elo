@@ -11,6 +11,7 @@ import pandas as pd
 from .config import OUTPUT_DIR
 from .output import TEAM_COLORS
 from .pipeline import EloSystem
+from .worldcup import export_worldcup_json
 
 DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs" / "data"
 
@@ -514,3 +515,8 @@ def export_all(
     print("    Computing historical rankings...")
     export_historical_rankings(elo, output_dir, start_date)
     print("    historical_rankings.json")
+
+    if gender == "men":
+        print("    Computing World Cup 2026 predictions...")
+        export_worldcup_json(elo, output_dir)
+        print("    worldcup2026.json")

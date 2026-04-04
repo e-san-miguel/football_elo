@@ -7,7 +7,7 @@ export async function render(container) {
     <div class="methodology-content">
         <h1>Methodology</h1>
 
-        <p>These ratings use the <a href="https://www.eloratings.net/about" target="_blank" rel="noopener">World Football Elo Rating</a> methodology, adapted for women's international football. The system is based on the Elo rating system originally developed for chess, with modifications for football-specific factors.</p>
+        <p>These ratings use the <a href="https://www.eloratings.net/about" target="_blank" rel="noopener">World Football Elo Rating</a> methodology, adapted for men's and women's international football. The system is based on the Elo rating system originally developed for chess, with modifications for football-specific factors.</p>
 
         <h2>The Formula</h2>
         <div class="formula-block">R<sub>new</sub> = R<sub>old</sub> + K &times; G &times; (W &minus; W<sub>e</sub>)</div>
@@ -19,10 +19,10 @@ export async function render(container) {
         <table class="k-table">
             <thead><tr><th>K</th><th>Tournament Type</th><th>Examples</th></tr></thead>
             <tbody>
-                <tr><td>60</td><td>World Cup &amp; Olympics</td><td>FIFA Women's World Cup, Olympic Games</td></tr>
-                <tr><td>50</td><td>Continental Championships</td><td>UEFA Euro, Copa Am&eacute;rica, AFC Asian Cup</td></tr>
-                <tr><td>40</td><td>Qualifiers</td><td>World Cup qualification, Euro qualification</td></tr>
-                <tr><td>30</td><td>Other Tournaments</td><td>Algarve Cup, SheBelieves Cup, Arnold Clark Cup</td></tr>
+                <tr><td>60</td><td>World Cup &amp; Olympics</td><td>FIFA World Cup, Olympic Games</td></tr>
+                <tr><td>50</td><td>Continental Championships</td><td>UEFA Euro, Copa Am&eacute;rica, AFC Asian Cup, Gold Cup, Confederations Cup</td></tr>
+                <tr><td>40</td><td>Qualifiers &amp; Nations Leagues</td><td>World Cup qualification, Euro qualification, UEFA Nations League</td></tr>
+                <tr><td>30</td><td>Other Tournaments</td><td>Regional championships, invitational cups, multi-sport games</td></tr>
                 <tr><td>20</td><td>Friendlies</td><td>International friendly matches</td></tr>
             </tbody>
         </table>
@@ -46,13 +46,24 @@ export async function render(container) {
         <p>Where <code>dr</code> is the rating difference. Equal teams each have a 50% expected result. A 200-point advantage gives roughly a 76% expected result.</p>
 
         <h2>Home Advantage</h2>
-        <p>When a match is not at a neutral venue, <strong>100 points</strong> are added to the home team's rating for the expected result calculation. This corresponds to roughly a 64%&ndash;36% advantage. Matches at neutral venues (such as World Cup finals) have no home advantage applied.</p>
+        <p>When a match is not at a neutral venue, <strong>50 points</strong> are added to the home team's rating for the expected result calculation. This corresponds to roughly a 57%&ndash;43% advantage. Matches at neutral venues (such as World Cup group stages) have no home advantage applied.</p>
 
         <h2>Match Results</h2>
         <p>Win = 1, Draw = 0.5, Loss = 0. Matches decided by penalty shootout are treated as draws (0.5 for both teams) — only the result in regular/extra time counts.</p>
 
         <h2>Initial Rating</h2>
         <p>All teams start at <strong>1500</strong>. The Elo system is self-correcting — after 20&ndash;30 matches, the initial rating has minimal impact on a team's current rating.</p>
+
+        <h2>2026 World Cup Predictions</h2>
+        <p>The World Cup predictions are generated using a <strong>Monte Carlo simulation</strong> of the entire tournament (10,000 iterations). For each simulation:</p>
+        <ol style="color:var(--text-secondary);line-height:2;padding-left:20px">
+            <li><strong>Group stage:</strong> All 12 groups are simulated simultaneously. Each match outcome (win/draw/loss) is sampled using probabilities derived from the teams' Elo ratings.</li>
+            <li><strong>3rd-place qualification:</strong> The 8 best 3rd-place teams (by points, then goal difference) advance to the Round of 32.</li>
+            <li><strong>Knockout bracket:</strong> Teams are placed into the official FIFA bracket. The R32 through the Final are simulated as single-elimination matches (no draws &mdash; the Elo expected result is used directly as win probability).</li>
+            <li><strong>Home advantage:</strong> Host nations (USA, Mexico, Canada) receive a +50 rating boost when playing in their own country.</li>
+        </ol>
+        <p>Match outcome probabilities for group stage matches are decomposed from the Elo expected score into win/draw/loss using a draw probability model calibrated to historical international football draw rates (~27% for evenly matched teams).</p>
+        <p>The probabilities shown (R32, R16, QF, SF, Final, Winner) represent the fraction of simulations in which each team reached that stage.</p>
 
         <h2>Data Sources</h2>
         <p>Match data is provided by Mart J&uuml;risoo (CC0 public domain):</p>

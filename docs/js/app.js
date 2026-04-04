@@ -6,6 +6,7 @@ import { render as renderRankings } from './rankings.js';
 import { render as renderTeam } from './team.js';
 import { render as renderCompare } from './compare.js';
 import { render as renderHistory } from './history.js';
+import { render as renderWorldCup } from './worldcup.js';
 import { render as renderMethodology } from './methodology.js';
 
 const app = document.getElementById('app');
@@ -16,6 +17,7 @@ const routes = [
     { pattern: /^#\/compare\/(.+)$/, handler: (m) => renderCompare(app, m[1]) },
     { pattern: /^#\/compare$/, handler: () => renderCompare(app) },
     { pattern: /^#\/history$/, handler: () => renderHistory(app) },
+    { pattern: /^#\/worldcup$/, handler: () => renderWorldCup(app) },
     { pattern: /^#\/methodology$/, handler: () => renderMethodology(app) },
     { pattern: /^#\/$/, handler: () => renderRankings(app) },
 ];
@@ -28,6 +30,7 @@ function updateActiveNav() {
         if (route === 'rankings') isActive = hash === '#/' || hash === '';
         else if (route === 'compare') isActive = hash.startsWith('#/compare');
         else if (route === 'history') isActive = hash.startsWith('#/history');
+        else if (route === 'worldcup') isActive = hash === '#/worldcup';
         else if (route === 'methodology') isActive = hash === '#/methodology';
         link.classList.toggle('active', isActive);
     });
@@ -133,6 +136,12 @@ function initGender() {
     document.querySelectorAll('.gender-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.gender === gender);
     });
+    updateGenderNav(gender);
+}
+
+function updateGenderNav(gender) {
+    const wcLink = document.querySelector('[data-route="worldcup"]');
+    if (wcLink) wcLink.style.display = gender === 'men' ? '' : 'none';
 }
 
 document.getElementById('gender-toggle')?.addEventListener('click', (e) => {
@@ -144,6 +153,12 @@ document.getElementById('gender-toggle')?.addEventListener('click', (e) => {
     document.querySelectorAll('.gender-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.gender === gender);
     });
+    updateGenderNav(gender);
+    // If switching away from men and on worldcup page, go to rankings
+    if (gender !== 'men' && window.location.hash === '#/worldcup') {
+        window.location.hash = '#/';
+        return;
+    }
     // Re-render current view with new gender data
     navigate();
 });
