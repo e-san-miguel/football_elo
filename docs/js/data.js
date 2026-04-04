@@ -1,11 +1,11 @@
 /**
  * Data loading and caching layer.
- * All JSON files are fetched relative to the site root.
+ * Supports gender switching (men/women) with separate data directories.
  */
 
 const cache = new Map();
+let currentGender = localStorage.getItem('gender') || 'women';
 
-// Detect base path (works on GitHub Pages and local)
 const BASE = document.querySelector('base')?.href
     || window.location.pathname.replace(/\/[^/]*$/, '/');
 
@@ -18,30 +18,27 @@ async function fetchJSON(path) {
     return data;
 }
 
-export async function getRankings() {
-    return fetchJSON('rankings.json');
+/** Gender-specific data path */
+function gp(file) {
+    return `${currentGender}/${file}`;
 }
 
-export async function getTeamColors() {
-    return fetchJSON('team_colors.json');
+export function getGender() { return currentGender; }
+
+export function setGender(g) {
+    if (g === currentGender) return;
+    currentGender = g;
+    localStorage.setItem('gender', g);
+    cache.clear();  // Clear all cached data on gender switch
 }
 
-export async function getTeamHistory(slug) {
-    return fetchJSON(`history/${slug}.json`);
-}
+// Gender-specific data
+export async function getRankings() { return fetchJSON(gp('rankings.json')); }
+export async function getTeamHistory(slug) { return fetchJSON(gp(`history/${slug}.json`)); }
+export async function getHistoryTop20() { return fetchJSON(gp('history_top20.json')); }
+export async function getTournaments() { return fetchJSON(gp('tournaments.json')); }
+export async function getHistoricalRankings() { return fetchJSON(gp('historical_rankings.json')); }
 
-export async function getHistoryTop20() {
-    return fetchJSON('history_top20.json');
-}
-
-export async function getTournaments() {
-    return fetchJSON('tournaments.json');
-}
-
-export async function getTeamFlags() {
-    return fetchJSON('team_flags.json');
-}
-
-export async function getHistoricalRankings() {
-    return fetchJSON('historical_rankings.json');
-}
+// Shared data (same for men and women)
+export async function getTeamColors() { return fetchJSON('team_colors.json'); }
+export async function getTeamFlags() { return fetchJSON('team_flags.json'); }

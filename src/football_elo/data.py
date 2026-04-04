@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from .config import DATA_DIR, RESULTS_URL, SHOOTOUTS_URL
+from .config import DATA_DIR, DATA_SOURCES
 
 # Normalize team names for successor states (treat as continuous teams)
 TEAM_NAME_MAP = {
@@ -26,16 +26,20 @@ def download_file(url: str, dest: Path, force: bool = False) -> Path:
     return dest
 
 
-def download_data(data_dir: Path = DATA_DIR, force: bool = False) -> None:
+def download_data(
+    gender: str = "women", data_dir: Path = DATA_DIR, force: bool = False
+) -> None:
     """Download results.csv and shootouts.csv from GitHub."""
-    download_file(RESULTS_URL, data_dir / "results.csv", force=force)
-    download_file(SHOOTOUTS_URL, data_dir / "shootouts.csv", force=force)
+    urls = DATA_SOURCES[gender]
+    gender_dir = data_dir / gender
+    download_file(urls["results"], gender_dir / "results.csv", force=force)
+    download_file(urls["shootouts"], gender_dir / "shootouts.csv", force=force)
 
 
-def load_results(data_dir: Path = DATA_DIR) -> pd.DataFrame:
+def load_results(gender: str = "women", data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """Load results.csv into a DataFrame."""
     df = pd.read_csv(
-        data_dir / "results.csv",
+        data_dir / gender / "results.csv",
         parse_dates=["date"],
         dtype={
             "home_team": str,
@@ -55,9 +59,9 @@ def load_results(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     return df.sort_values("date").reset_index(drop=True)
 
 
-def load_shootouts(data_dir: Path = DATA_DIR) -> pd.DataFrame:
+def load_shootouts(gender: str = "women", data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """Load shootouts.csv into a DataFrame."""
-    path = data_dir / "shootouts.csv"
+    path = data_dir / gender / "shootouts.csv"
     if not path.exists():
         return pd.DataFrame(columns=["date", "home_team", "away_team", "winner"])
     df = pd.read_csv(path, parse_dates=["date"])
@@ -67,10 +71,10 @@ def load_shootouts(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     return df
 
 
-def load_all(data_dir: Path = DATA_DIR) -> pd.DataFrame:
+def load_all(gender: str = "women", data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """Load results and merge with shootout data."""
-    results = load_results(data_dir)
-    shootouts = load_shootouts(data_dir)
+    results = load_results(gender, data_dir)
+    shootouts = load_shootouts(gender, data_dir)
 
     # Left join to add shootout_winner column
     merged = results.merge(

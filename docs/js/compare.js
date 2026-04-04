@@ -2,7 +2,7 @@
  * Compare teams view — overlay multiple team histories on one chart.
  */
 
-import { getRankings, getTeamHistory, getTeamColors } from './data.js';
+import { getRankings, getTeamHistory, getTeamColors, getGender } from './data.js';
 import { getChartLayout, CHART_CONFIG, DEFAULT_COLOR, baselineShape } from './charts.js';
 import { el, formatRating } from './utils.js';
 
@@ -164,7 +164,7 @@ async function renderCompareChart() {
         shapes: [baselineShape()],
         xaxis: {
             ...getChartLayout().xaxis,
-            range: ['1990-01-01', undefined],
+            range: [getGender() === 'men' ? '1900-01-01' : '1990-01-01', undefined],
         },
     };
 

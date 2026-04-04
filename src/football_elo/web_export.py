@@ -12,7 +12,34 @@ from .config import OUTPUT_DIR
 from .output import TEAM_COLORS
 from .pipeline import EloSystem
 
-DOCS_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "docs" / "data"
+DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs" / "data"
+
+WOMEN_TOURNAMENTS = [
+    {"name": "After 2023 WWC", "date": "2023-08-20"},
+    {"name": "After 2019 WWC", "date": "2019-07-07"},
+    {"name": "After 2015 WWC", "date": "2015-07-05"},
+    {"name": "After 2011 WWC", "date": "2011-07-17"},
+    {"name": "After 2007 WWC", "date": "2007-09-30"},
+    {"name": "After 2003 WWC", "date": "2003-10-12"},
+    {"name": "After 1999 WWC", "date": "1999-07-10"},
+    {"name": "After 1995 WWC", "date": "1995-06-18"},
+    {"name": "After 1991 WWC", "date": "1991-11-30"},
+    {"name": "After 2024 Olympics", "date": "2024-08-10"},
+    {"name": "After 2021 Olympics", "date": "2021-08-06"},
+]
+
+MEN_TOURNAMENTS = [
+    {"name": "After 2022 WC", "date": "2022-12-18"},
+    {"name": "After 2018 WC", "date": "2018-07-15"},
+    {"name": "After 2014 WC", "date": "2014-07-13"},
+    {"name": "After 2010 WC", "date": "2010-07-11"},
+    {"name": "After 2006 WC", "date": "2006-07-09"},
+    {"name": "After 2002 WC", "date": "2002-06-30"},
+    {"name": "After 1998 WC", "date": "1998-07-12"},
+    {"name": "After 1994 WC", "date": "1994-07-17"},
+    {"name": "After Euro 2024", "date": "2024-07-14"},
+    {"name": "After Euro 2020", "date": "2021-07-11"},
+]
 
 # Team slug -> ISO 3166-1 alpha-2 code for flagcdn.com
 TEAM_FLAGS = {
@@ -91,14 +118,15 @@ def slugify(name: str) -> str:
     return s
 
 
-def _compute_rank_history(elo: EloSystem) -> dict[str, list[dict]]:
-    """Compute rank at each match date for every team (from 1990 onward).
+def _compute_rank_history(
+    elo: EloSystem, start_date: str = "1990-01-01"
+) -> dict[str, list[dict]]:
+    """Compute rank at each match date for every team (from start_date onward).
 
     Returns {team_name: [{"date": ..., "rk": rank}, ...]}.
     """
     history_df = elo.get_history_dataframe()
-    # Get unique dates from 1990 onward
-    all_dates = sorted(history_df[history_df["date"] >= "1990-01-01"]["date"].unique())
+    all_dates = sorted(history_df[history_df["date"] >= start_date]["date"].unique())
 
     # Build running ratings: at each date, what is each team's rating?
     running_ratings: dict[str, float] = {}
@@ -114,7 +142,7 @@ def _compute_rank_history(elo: EloSystem) -> dict[str, list[dict]]:
         for _, row in group.iterrows():
             running_ratings[row["team"]] = row["rating_after"]
 
-        if date < pd.Timestamp("1990-01-01"):
+        if date < pd.Timestamp(start_date):
             continue
 
         # Compute ranks at this date
@@ -132,7 +160,7 @@ def _compute_rank_history(elo: EloSystem) -> dict[str, list[dict]]:
     return rank_history
 
 
-def _compute_monthly_snapshots(elo: EloSystem) -> list[dict]:
+def _compute_monthly_snapshots(elo: EloSystem, start_date: str = "1990-01-01") -> list[dict]:
     """Compute ranking snapshots at the 1st of each month from 1990 onward.
 
     Returns a list of {"date": "YYYY-MM-01", "teams": [{"team", "slug", "rating", "rank"}, ...]}.
@@ -144,7 +172,7 @@ def _compute_monthly_snapshots(elo: EloSystem) -> list[dict]:
     sorted_dates = sorted(date_groups.groups.keys())
 
     snapshots = []
-    next_snapshot = pd.Timestamp("1990-01-01")
+    next_snapshot = pd.Timestamp(start_date)
 
     for date in sorted_dates:
         group = date_groups.get_group(date)
@@ -192,9 +220,11 @@ def _compute_monthly_snapshots(elo: EloSystem) -> list[dict]:
     return snapshots
 
 
-def export_historical_rankings(elo: EloSystem, output_dir: Path) -> None:
+def export_historical_rankings(
+    elo: EloSystem, output_dir: Path, start_date: str = "1990-01-01"
+) -> None:
     """Export monthly ranking snapshots as JSON."""
-    snapshots = _compute_monthly_snapshots(elo)
+    snapshots = _compute_monthly_snapshots(elo, start_date)
     (output_dir / "historical_rankings.json").write_text(
         json.dumps(snapshots, separators=(",", ":")), encoding="utf-8"
     )
@@ -405,42 +435,39 @@ def export_history_top_n(elo: EloSystem, n: int, output_dir: Path) -> None:
     )
 
 
-def export_tournaments_json(output_dir: Path) -> None:
+def export_tournaments_json(gender: str, output_dir: Path) -> None:
     """Export major tournament dates for quick-jump buttons."""
-    tournaments = [
-        {"name": "After 2023 WWC", "date": "2023-08-20"},
-        {"name": "After 2019 WWC", "date": "2019-07-07"},
-        {"name": "After 2015 WWC", "date": "2015-07-05"},
-        {"name": "After 2011 WWC", "date": "2011-07-17"},
-        {"name": "After 2007 WWC", "date": "2007-09-30"},
-        {"name": "After 2003 WWC", "date": "2003-10-12"},
-        {"name": "After 1999 WWC", "date": "1999-07-10"},
-        {"name": "After 1995 WWC", "date": "1995-06-18"},
-        {"name": "After 1991 WWC", "date": "1991-11-30"},
-        {"name": "After 2024 Olympics", "date": "2024-08-10"},
-        {"name": "After 2021 Olympics", "date": "2021-08-06"},
-    ]
+    tournaments = WOMEN_TOURNAMENTS if gender == "women" else MEN_TOURNAMENTS
     (output_dir / "tournaments.json").write_text(
         json.dumps(tournaments, separators=(",", ":")), encoding="utf-8"
     )
 
 
-def export_all(elo: EloSystem, output_dir: Path = DOCS_DATA_DIR) -> None:
-    """Export all JSON files for the website."""
+def export_all(
+    elo: EloSystem, gender: str = "women", base_dir: Path = DOCS_DIR
+) -> None:
+    """Export all JSON files for the website.
+
+    Gender-specific files go to base_dir/{gender}/.
+    Shared files (colors, flags) go to base_dir/.
+    """
+    output_dir = base_dir / gender
     output_dir.mkdir(parents=True, exist_ok=True)
-    print(f"  Exporting to {output_dir}/")
+    start_date = "1900-01-01" if gender == "men" else "1990-01-01"
+    print(f"  Exporting {gender} to {output_dir}/")
 
     print("    Computing rank history...")
-    rank_history = _compute_rank_history(elo)
+    rank_history = _compute_rank_history(elo, start_date)
 
     export_rankings_json(elo, rank_history, output_dir)
     print("    rankings.json")
 
-    export_team_colors_json(output_dir)
-    print("    team_colors.json")
-
-    export_team_flags_json(output_dir)
-    print("    team_flags.json")
+    # Shared files go to base_dir (only write once)
+    if not (base_dir / "team_colors.json").exists() or gender == "women":
+        export_team_colors_json(base_dir)
+        print("    team_colors.json (shared)")
+        export_team_flags_json(base_dir)
+        print("    team_flags.json (shared)")
 
     export_team_histories(elo, rank_history, output_dir)
     print(f"    history/ ({len(elo.ratings)} team files)")
@@ -448,9 +475,9 @@ def export_all(elo: EloSystem, output_dir: Path = DOCS_DATA_DIR) -> None:
     export_history_top_n(elo, 20, output_dir)
     print("    history_top20.json")
 
-    export_tournaments_json(output_dir)
+    export_tournaments_json(gender, output_dir)
     print("    tournaments.json")
 
     print("    Computing historical rankings...")
-    export_historical_rankings(elo, output_dir)
+    export_historical_rankings(elo, output_dir, start_date)
     print("    historical_rankings.json")

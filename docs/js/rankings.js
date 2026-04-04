@@ -2,7 +2,7 @@
  * Rankings table view — the home page.
  */
 
-import { getRankings, getTeamFlags } from './data.js';
+import { getRankings, getTeamFlags, getGender } from './data.js';
 import { el, formatRating, formatChange, changeClass, flagImg } from './utils.js';
 
 let currentSort = { key: 'rank', asc: true };
@@ -20,7 +20,7 @@ export async function render(container) {
 
     // Hero
     const hero = el('div', { class: 'hero' }, [
-        el('h1', { text: "Women's International Football Elo Ratings" }),
+        el('h1', { text: `${getGender() === 'men' ? "Men's" : "Women's"} International Football Elo Ratings` }),
         el('p', { class: 'hero-subtitle', text: `Rankings as of ${data.last_updated}` }),
     ]);
     container.appendChild(hero);

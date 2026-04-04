@@ -46,7 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("audit", help="Show tournament K-factor mapping")
 
     # export-web
-    sub.add_parser("export-web", help="Export JSON data for website")
+    ew_p = sub.add_parser("export-web", help="Export JSON data for website")
+    ew_p.add_argument(
+        "--gender", choices=["women", "men", "all"], default="all",
+        help="Which dataset to export (default: all)",
+    )
 
     return parser
 
@@ -131,18 +135,26 @@ def main() -> None:
         cmd_export_web(args)
 
 
-def cmd_export_web(_args: argparse.Namespace) -> None:
+def _export_gender(gender: str) -> None:
+    """Download, compute, and export for a single gender."""
+    print(f"\n=== {gender.upper()} ===")
     print("Downloading data...")
-    download_data()
+    download_data(gender=gender)
     print("Loading matches...")
-    matches = load_all()
+    matches = load_all(gender=gender)
     print(f"  {len(matches)} matches loaded")
     print("Computing Elo ratings...")
     elo = EloSystem()
     elo.process_all(matches)
     print("Exporting JSON for website...")
-    export_all(elo)
-    print("Done.")
+    export_all(elo, gender=gender)
+
+
+def cmd_export_web(args: argparse.Namespace) -> None:
+    genders = ["women", "men"] if args.gender == "all" else [args.gender]
+    for g in genders:
+        _export_gender(g)
+    print("\nDone.")
 
 
 if __name__ == "__main__":

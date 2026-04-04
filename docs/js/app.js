@@ -125,5 +125,30 @@ function relayoutPlotlyCharts() {
 document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
 initTheme();
 
+// Gender toggle
+import { getGender, setGender } from './data.js';
+
+function initGender() {
+    const gender = getGender();
+    document.querySelectorAll('.gender-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.gender === gender);
+    });
+}
+
+document.getElementById('gender-toggle')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.gender-btn');
+    if (!btn) return;
+    const gender = btn.dataset.gender;
+    if (gender === getGender()) return;
+    setGender(gender);
+    document.querySelectorAll('.gender-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.gender === gender);
+    });
+    // Re-render current view with new gender data
+    navigate();
+});
+
+initGender();
+
 // Initial load
 navigate();

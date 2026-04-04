@@ -3,7 +3,7 @@
  * chart toggle (Elo/Trend/Ranking), top wins, worst losses.
  */
 
-import { getRankings, getTeamHistory, getTeamColors, getTeamFlags } from './data.js';
+import { getRankings, getTeamHistory, getTeamColors, getTeamFlags, getGender } from './data.js';
 import { CHART_CONFIG, DEFAULT_COLOR, baselineShape, getChartLayout } from './charts.js';
 import { el, formatRating, formatChange, changeClass, flagImg } from './utils.js';
 
@@ -193,7 +193,7 @@ function renderPlotly(dates, yData, yTitle, hoverText, color, teamName, invertY)
         xaxis: {
             ...getChartLayout().xaxis,
             rangeslider: {},
-            range: ['1990-01-01', dates[dates.length - 1]],
+            range: [getGender() === 'men' ? '1900-01-01' : '1990-01-01', dates[dates.length - 1]],
         },
         yaxis: {
             ...getChartLayout().yaxis,

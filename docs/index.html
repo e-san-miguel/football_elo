@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Women's Football Elo Ratings</title>
-    <meta name="description" content="Elo ratings for women's international football teams. Interactive rankings, team histories, and comparisons.">
+    <title>Football Elo Ratings</title>
+    <meta name="description" content="Elo ratings for men's and women's international football teams. Interactive rankings, team histories, and comparisons.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -14,8 +14,12 @@
 <body>
     <nav id="main-nav">
         <div class="nav-inner">
-            <a href="#/" class="nav-logo">Women's Football Elo</a>
+            <a href="#/" class="nav-logo">Football Elo Ratings</a>
             <div class="nav-links">
+                <div class="gender-toggle" id="gender-toggle">
+                    <button class="gender-btn active" data-gender="women">Women</button>
+                    <button class="gender-btn" data-gender="men">Men</button>
+                </div>
                 <a href="#/" class="nav-link" data-route="rankings">Rankings</a>
                 <a href="#/compare" class="nav-link" data-route="compare">Compare</a>
                 <a href="#/history" class="nav-link" data-route="history">History</a>

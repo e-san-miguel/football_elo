@@ -602,6 +602,32 @@ a:hover { color: var(--accent-hover); }
     color: var(--accent);
 }
 
+/* ===== Gender Toggle ===== */
+.gender-toggle {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 2px;
+    margin-right: 8px;
+}
+.gender-btn {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.gender-btn:hover { color: var(--text-primary); }
+.gender-btn.active {
+    background: var(--accent);
+    color: #fff;
+}
+
 /* ===== Theme Toggle ===== */
 .theme-toggle {
     background: none;
