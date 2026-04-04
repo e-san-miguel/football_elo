@@ -1,0 +1,350 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+
+\title{Methodology Appendix:\\International Football Elo Ratings\\and 2026 World Cup Predictions}
+\author{Eric San Miguel}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+
+%----------------------------------------------------------------------
+\section{Introduction}
+%----------------------------------------------------------------------
+
+This document provides a formal description of the methodology used to compute Elo ratings for men's and women's international football teams, as well as the Monte Carlo simulation framework used to generate 2026 World Cup predictions. The system is adapted from the World Football Elo Rating methodology published at \url{https://www.eloratings.net/about}, with modifications noted throughout.
+
+%----------------------------------------------------------------------
+\section{Elo Rating System}
+%----------------------------------------------------------------------
+
+\subsection{Overview}
+
+Each team maintains a numerical rating that is updated after every international match. The rating change depends on (i) the importance of the match, (ii) the goal difference, (iii) the actual match result, and (iv) the expected result based on the pre-match rating difference between the two teams.
+
+\subsection{Rating Update Formula}
+
+After each match, a team's rating is updated according to:
+\begin{equation}
+R_{\text{new}} = R_{\text{old}} + K \cdot G \cdot (W - W_e)
+\label{eq:elo_update}
+\end{equation}
+where:
+\begin{itemize}[nosep]
+    \item $R_{\text{new}}$ is the team's post-match rating,
+    \item $R_{\text{old}}$ is the team's pre-match rating,
+    \item $K$ is the tournament importance weight (Section~\ref{sec:kfactor}),
+    \item $G$ is the goal difference multiplier (Section~\ref{sec:gfactor}),
+    \item $W$ is the actual match result (Section~\ref{sec:matchresult}),
+    \item $W_e$ is the expected match result (Section~\ref{sec:expected}).
+\end{itemize}
+
+The system is zero-sum: for any match between teams $A$ and $B$, the rating changes satisfy $\Delta R_A + \Delta R_B = 0$.
+
+\subsection{Initial Rating}
+
+All teams begin with an initial rating of $R_0 = 1500$. This rating is assigned the first time a team appears in the dataset. The Elo system is self-correcting; after approximately 20--30 matches, the initial rating has minimal influence on a team's current rating.
+
+\subsection{Expected Result}
+\label{sec:expected}
+
+The expected result for team $A$ against team $B$ is given by:
+\begin{equation}
+W_e = \frac{1}{10^{-d_r / 400} + 1}
+\label{eq:expected}
+\end{equation}
+where $d_r$ is the adjusted rating difference. For a match at a neutral venue:
+\[
+d_r = R_A - R_B
+\]
+For a match where team $A$ is the home team at a non-neutral venue:
+\[
+d_r = (R_A + H) - R_B
+\]
+where $H = 50$ is the home advantage parameter. The expected result for team $B$ is $1 - W_e$.
+
+\paragraph{Home advantage.} A home advantage of $H = 50$ rating points is added to the home team's rating for the purpose of computing the expected result. This corresponds to approximately a 57\%--43\% advantage for the home team when teams are otherwise equally rated. Matches at neutral venues (e.g., World Cup group stage matches) receive no home advantage adjustment.
+
+\paragraph{Remark.} The original eloratings.net system uses $H = 100$. We use $H = 50$ as we find this better calibrated to observed home advantage in international football.
+
+\subsection{K Factor --- Tournament Importance}
+\label{sec:kfactor}
+
+The K factor determines the maximum possible rating change from a single match and varies by tournament type. Higher values are assigned to more prestigious competitions.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}clp{7cm}@{}}
+\toprule
+$K$ & Category & Examples \\
+\midrule
+60 & World Cup \& Olympics & FIFA World Cup, Olympic Games \\
+50 & Continental Championships & UEFA Euro, Copa Am\'erica, AFC Asian Cup, Gold Cup, Confederations Cup, Finalissima \\
+40 & Qualifiers \& Nations Leagues & World Cup qualification, Euro qualification, UEFA Nations League, CONCACAF Nations League \\
+30 & Other Tournaments & Regional championships, invitational cups, multi-sport games \\
+20 & Friendlies & International friendly matches \\
+\bottomrule
+\end{tabular}
+\caption{K factor assignment by tournament type.}
+\label{tab:kfactor}
+\end{table}
+
+Tournament names are classified using the following precedence:
+\begin{enumerate}[nosep]
+    \item Exact match against a set of known World Cup/Olympic tournament names ($K=60$).
+    \item Exact match against a set of known continental championship names ($K=50$).
+    \item Exact match against a set of known qualifier tournament names, \textit{or} the tournament name contains the substring ``qualifi'' (case-insensitive) ($K=40$).
+    \item Exact match against ``Friendly'' ($K=20$).
+    \item Default: all other named tournaments ($K=30$).
+\end{enumerate}
+
+\subsection{G Factor --- Goal Difference Multiplier}
+\label{sec:gfactor}
+
+The goal difference index $G$ amplifies rating changes for decisive victories:
+\begin{equation}
+G = \begin{cases}
+1.0 & \text{if } |g| \leq 1 \\
+1.5 & \text{if } |g| = 2 \\
+\dfrac{11 + |g|}{8} & \text{if } |g| \geq 3
+\end{cases}
+\label{eq:gfactor}
+\end{equation}
+where $g = \text{home\_score} - \text{away\_score}$ is the goal difference. Selected values are shown in Table~\ref{tab:gfactor}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+$|g|$ & $G$ \\
+\midrule
+0--1 & 1.000 \\
+2 & 1.500 \\
+3 & 1.750 \\
+4 & 1.875 \\
+5 & 2.000 \\
+10 & 2.625 \\
+\bottomrule
+\end{tabular}
+\caption{Goal difference multiplier values.}
+\label{tab:gfactor}
+\end{table}
+
+\subsection{Match Result}
+\label{sec:matchresult}
+
+The actual result $W$ is coded as:
+\[
+W = \begin{cases}
+1.0 & \text{win} \\
+0.5 & \text{draw} \\
+0.0 & \text{loss}
+\end{cases}
+\]
+
+Matches decided by penalty shootout are treated as draws ($W = 0.5$ for both teams). Only the result in regulation and extra time determines the match outcome for rating purposes; the penalty shootout winner is disregarded.
+
+%----------------------------------------------------------------------
+\section{Data}
+%----------------------------------------------------------------------
+
+\subsection{Data Sources}
+
+Match data is sourced from publicly available datasets maintained by Mart J\"urisoo, licensed under CC0 (public domain):
+\begin{itemize}[nosep]
+    \item \textbf{Women's:} \url{https://github.com/martj42/womens-international-results} --- 11,000+ matches from 1956 to present.
+    \item \textbf{Men's:} \url{https://github.com/martj42/international_results} --- 49,000+ matches from 1872 to present.
+\end{itemize}
+
+Each dataset consists of a \texttt{results.csv} file containing match-level observations with the following fields: date, home team, away team, home score, away score, tournament name, city, country, and neutral venue indicator. A supplementary \texttt{shootouts.csv} file records penalty shootout outcomes.
+
+\subsection{Team Name Normalization}
+
+To maintain rating continuity across successor states, the following mappings are applied prior to computation:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+Historical Name & Mapped To \\
+\midrule
+Macedonia & North Macedonia \\
+FR Yugoslavia & Serbia \\
+Serbia and Montenegro & Serbia \\
+\bottomrule
+\end{tabular}
+\caption{Successor state name normalization.}
+\end{table}
+
+\subsection{Ranking Filters}
+
+The published rankings exclude:
+\begin{itemize}[nosep]
+    \item Teams with fewer than 20 matches played.
+    \item Teams whose most recent match occurred before January 1, 2016 (inactive/defunct teams).
+    \item Non-FIFA member entities (64 excluded teams including CONIFA members, overseas territories, and historical entities).
+\end{itemize}
+
+%----------------------------------------------------------------------
+\section{Derived Outputs}
+%----------------------------------------------------------------------
+
+\subsection{Smoothed Ratings (Trend)}
+
+A smoothed rating series is computed for each team using a centered rolling average with a window of 365 days. The procedure is:
+\begin{enumerate}[nosep]
+    \item Construct a time series of post-match ratings indexed by match date.
+    \item Resample to daily frequency using forward-fill interpolation.
+    \item Apply a centered rolling mean with window size 365 and minimum periods 1.
+    \item Extract smoothed values at the original match dates.
+\end{enumerate}
+
+\subsection{Ranking History}
+
+Team rankings are computed at each match date from 1990 onward (1900 for men's football). At each date, all teams with recorded ratings are sorted in descending order by rating, and ranks are assigned. Historical ranking snapshots are also computed at monthly intervals (1st of each month) for the top 50 teams.
+
+%----------------------------------------------------------------------
+\section{2026 World Cup Predictions}
+\label{sec:worldcup}
+%----------------------------------------------------------------------
+
+\subsection{Overview}
+
+Tournament predictions are generated via Monte Carlo simulation of the complete 2026 World Cup. Each simulation independently samples the entire tournament---group stage, third-place qualification, and all knockout rounds---and the final probabilities are computed as the fraction of simulations in which each team reached each stage. The simulation uses $N = 10{,}000$ independent iterations.
+
+\subsection{Group Stage Match Probabilities}
+
+For group stage matches, we decompose the Elo expected score $W_e$ into separate win, draw, and loss probabilities.
+
+\paragraph{Draw probability model.} The probability of a draw is modeled as a function of the expected score:
+\begin{equation}
+P(\text{draw})_{\text{raw}} = 0.38 - \frac{0.38 \cdot (W_e - 0.5)^2}{0.25}
+\label{eq:pdraw}
+\end{equation}
+\begin{equation}
+P(\text{draw}) = \min\!\big(\max(P(\text{draw})_{\text{raw}},\, 0),\, 0.38\big)
+\end{equation}
+
+This parabolic model achieves a maximum draw probability of 38\% when teams are equally rated ($W_e = 0.5$) and decreases as the rating gap widens, reaching zero when $|W_e - 0.5| \geq 0.5$.
+
+\paragraph{Win/loss probabilities.} Given the draw probability:
+\begin{align}
+P(\text{win}_A)_{\text{raw}} &= W_e - \tfrac{1}{2}\, P(\text{draw}) \\
+P(\text{win}_B)_{\text{raw}} &= (1 - W_e) - \tfrac{1}{2}\, P(\text{draw})
+\end{align}
+Both values are clamped to $[0, \infty)$ and then normalized so that $P(\text{win}_A) + P(\text{draw}) + P(\text{win}_B) = 1$.
+
+\paragraph{Home advantage.} Host nations (United States, Mexico, Canada) receive the standard $H = 50$ home advantage when playing in their own country, applied to both group stage and knockout matches.
+
+\subsection{Group Stage Simulation}
+
+For each of the 12 groups, the six pairwise matches are simulated independently. Match outcomes are sampled from the categorical distribution $(P(\text{win}_A),\, P(\text{draw}),\, P(\text{win}_B))$. Points are awarded as 3 for a win, 1 for a draw, and 0 for a loss.
+
+Goal difference is approximated for tiebreaking purposes: a winning team receives $+1.5$ goal difference and the losing team $-1.5$; draws contribute $0$ to both teams.
+
+Teams within each group are ranked by:
+\begin{enumerate}[nosep]
+    \item Points (descending)
+    \item Goal difference (descending)
+    \item Random tiebreaker (uniform)
+\end{enumerate}
+
+\subsection{Third-Place Qualification}
+
+From each group, the third-place team is recorded with its points total and goal difference. The 12 third-place teams are ranked across all groups by:
+\begin{enumerate}[nosep]
+    \item Points (descending)
+    \item Goal difference (descending)
+    \item Random tiebreaker (uniform)
+\end{enumerate}
+The top 8 third-place teams advance to the Round of 32.
+
+\subsection{Round of 32 Bracket}
+
+The Round of 32 consists of 16 matches with predetermined pairings based on group finishing positions. Eight matches involve group winners against third-place qualifiers; four matches pair runners-up from different groups; and four matches pair group winners against runners-up from other groups.
+
+The specific bracket assignment is shown in Table~\ref{tab:r32}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}cll@{}}
+\toprule
+Match & Team A & Team B \\
+\midrule
+73 & Runner-up A & Runner-up B \\
+74 & Winner E & 3rd-place slot 0 \\
+75 & Winner F & Runner-up C \\
+76 & Winner C & Runner-up F \\
+77 & Winner I & 3rd-place slot 1 \\
+78 & Runner-up E & Runner-up I \\
+79 & Winner A & 3rd-place slot 2 \\
+80 & Winner L & 3rd-place slot 3 \\
+81 & Winner D & 3rd-place slot 4 \\
+82 & Winner G & 3rd-place slot 5 \\
+83 & Runner-up K & Runner-up L \\
+84 & Winner H & Runner-up J \\
+85 & Winner B & 3rd-place slot 6 \\
+86 & Winner J & Runner-up H \\
+87 & Winner K & 3rd-place slot 7 \\
+88 & Runner-up D & Runner-up G \\
+\bottomrule
+\end{tabular}
+\caption{Round of 32 bracket structure. Matches are paired consecutively for the Round of 16 (i.e., winners of matches 73 and 74 meet in R16, etc.).}
+\label{tab:r32}
+\end{table}
+
+\paragraph{Third-place slot allocation.} The eight qualifying third-place teams are assigned to bracket slots subject to the constraint that a third-place team cannot face the group winner from its own group. The allocation proceeds greedily in slot order: for each slot, the first available third-place team (sorted by group letter) that does not violate the same-group constraint is assigned. If no valid assignment exists, the constraint is relaxed.
+
+\paragraph{Remark.} The official FIFA regulations specify 495 possible allocation scenarios based on which eight groups produce qualifying third-place teams. Our simplified greedy allocation approximates this system. The resulting tournament-level probabilities (e.g., $P(\text{winner})$) are robust to the specific allocation rule, as the primary determinant of advancement is team strength rather than bracket position.
+
+\subsection{Knockout Stage Simulation}
+
+Knockout matches (R32 through the Final) are simulated without draws. The win probability is the Elo expected result:
+\begin{equation}
+P(\text{win}_A) = W_e = \frac{1}{10^{-(R_A + h - R_B)/400} + 1}
+\end{equation}
+where $h = H = 50$ if team $A$ is a host nation, $h = -H$ if team $B$ is a host nation, and $h = 0$ otherwise.
+
+The bracket progresses as a standard single-elimination tournament:
+\[
+\text{R32 (16 matches)} \to \text{R16 (8)} \to \text{QF (4)} \to \text{SF (2)} \to \text{Final (1)}
+\]
+
+Winners of consecutive R32 match pairs meet in the R16, and so forth.
+
+\subsection{Output Probabilities}
+
+For each of the 48 teams, the simulation reports:
+\begin{itemize}[nosep]
+    \item $P(\text{1st})$, $P(\text{2nd})$, $P(\text{3rd})$, $P(\text{4th})$: group stage finishing position probabilities.
+    \item $P(\text{R32})$: probability of advancing to the Round of 32.
+    \item $P(\text{R16})$, $P(\text{QF})$, $P(\text{SF})$, $P(\text{Final})$: probability of reaching each knockout stage.
+    \item $P(\text{Winner})$: probability of winning the tournament.
+\end{itemize}
+
+By construction, $\sum_{i=1}^{48} P_i(\text{Winner}) = 1$ and for each team, $P(\text{R32}) \geq P(\text{R16}) \geq P(\text{QF}) \geq P(\text{SF}) \geq P(\text{Final}) \geq P(\text{Winner})$.
+
+%----------------------------------------------------------------------
+\section*{References}
+%----------------------------------------------------------------------
+
+\begin{enumerate}[nosep]
+    \item Elo, A. E. (1978). \textit{The Rating of Chessplayers, Past and Present.} Arco Publishing.
+    \item World Football Elo Ratings. \url{https://www.eloratings.net/about}.
+    \item J\"urisoo, M. Women's International Football Results. \url{https://github.com/martj42/womens-international-results}.
+    \item J\"urisoo, M. International Football Results. \url{https://github.com/martj42/international_results}.
+\end{enumerate}
+
+\end{document}

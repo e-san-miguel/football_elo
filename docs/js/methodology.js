@@ -80,7 +80,7 @@ export async function render(container) {
         </ul>
 
         <h2>About</h2>
-        <p>This project was developed by <strong>Eric San Miguel</strong>. The source code is available on <a href="https://github.com/e-san-miguel/football_elo" target="_blank" rel="noopener">GitHub</a>.</p>
+        <p>This project was developed by <strong>Eric San Miguel</strong>.</p>
         <p>For questions, suggestions, or corrections, reach out at <a href="mailto:eric.sanmiguel@psu.edu">eric.sanmiguel@psu.edu</a>.</p>
     </div>
     `;
