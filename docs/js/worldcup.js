@@ -57,7 +57,14 @@ function buildRankingsCard(wcData, flags) {
             allTeams.push({ ...t, group: gName });
         }
     }
-    allTeams.sort((a, b) => (b.p_winner ?? 0) - (a.p_winner ?? 0));
+    allTeams.sort((a, b) =>
+        (b.p_winner ?? 0) - (a.p_winner ?? 0)
+        || (b.p_final ?? 0) - (a.p_final ?? 0)
+        || (b.p_sf ?? 0) - (a.p_sf ?? 0)
+        || (b.p_qf ?? 0) - (a.p_qf ?? 0)
+        || (b.p_r16 ?? 0) - (a.p_r16 ?? 0)
+        || (b.p_r32 ?? 0) - (a.p_r32 ?? 0)
+    );
 
     const table = el('table', { class: 'rankings-table' });
     const thead = el('thead');
