@@ -20,7 +20,7 @@ export async function render(container) {
 
     // Header
     const hero = el('div', { class: 'hero' }, [
-        el('h1', { text: '2026 FIFA World Cup Predictions' }),
+        el('h1', { text: '2026 World Cup Predictions' }),
         el('p', { class: 'hero-subtitle', text: 'Group stage probabilities based on current Elo ratings \u00b7 50,000 simulations' }),
     ]);
     container.appendChild(hero);

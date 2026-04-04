@@ -19,7 +19,7 @@ export async function render(container) {
         <table class="k-table">
             <thead><tr><th>K</th><th>Tournament Type</th><th>Examples</th></tr></thead>
             <tbody>
-                <tr><td>60</td><td>World Cup &amp; Olympics</td><td>FIFA World Cup, Olympic Games</td></tr>
+                <tr><td>60</td><td>World Cup &amp; Olympics</td><td>World Cup, Olympic Games</td></tr>
                 <tr><td>50</td><td>Continental Championships</td><td>UEFA Euro, Copa Am&eacute;rica, AFC Asian Cup, Gold Cup, Confederations Cup</td></tr>
                 <tr><td>40</td><td>Qualifiers &amp; Nations Leagues</td><td>World Cup qualification, Euro qualification, UEFA Nations League</td></tr>
                 <tr><td>30</td><td>Other Tournaments</td><td>Regional championships, invitational cups, multi-sport games</td></tr>
