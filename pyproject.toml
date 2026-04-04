@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "football-elo"
+version = "0.1.0"
+description = "Elo ratings for women's international football teams"
+license = "CC0-1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "requests>=2.28",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+football-elo = "football_elo.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
