@@ -25,6 +25,16 @@ export async function render(container) {
     ]);
     container.appendChild(hero);
 
+    // World Cup button (men only)
+    if (getGender() === 'men') {
+        const wcBtn = el('a', {
+            href: '#/worldcup',
+            class: 'wc-cta-btn',
+            html: '\u26bd 2026 FIFA World Cup Predictions',
+        });
+        container.appendChild(el('div', { style: 'text-align:center;margin-bottom:28px' }, [wcBtn]));
+    }
+
     // Stat cards
     const top = allTeams[0];
     const stats = el('div', { class: 'stat-cards' }, [
