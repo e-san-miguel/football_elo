@@ -1,0 +1,531 @@
+/* ===== Design System ===== */
+:root {
+    /* Background */
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-tertiary: #1e293b;
+    --bg-surface: #1a2332;
+
+    /* Accent */
+    --accent: #06d6a0;
+    --accent-hover: #05b88a;
+    --accent-muted: #064e3b;
+    --accent-secondary: #f59e0b;
+
+    /* Text */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+
+    /* Semantic */
+    --positive: #22c55e;
+    --negative: #ef4444;
+
+    /* Border */
+    --border: #1e293b;
+    --border-hover: #334155;
+
+    /* Chart */
+    --chart-bg: #0f172a;
+    --chart-grid: #1e293b;
+
+    /* Typography */
+    --font-display: 'Big Shoulders Display', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Spacing */
+    --radius: 12px;
+    --gap: 24px;
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-body);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+a:hover { color: var(--accent-hover); }
+
+/* ===== Nav ===== */
+#main-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10, 14, 26, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--gap);
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.3rem;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.nav-logo:hover { color: var(--accent); }
+
+.nav-links { display: flex; gap: 8px; }
+
+.nav-link {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+.nav-link:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+.nav-link.active {
+    color: var(--accent);
+    background: var(--accent-muted);
+}
+
+/* ===== Main ===== */
+#app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 84px var(--gap) 40px;
+    width: 100%;
+    flex: 1;
+}
+
+/* ===== Footer ===== */
+#main-footer {
+    border-top: 1px solid var(--border);
+    padding: 20px var(--gap);
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+.footer-inner { max-width: 1200px; margin: 0 auto; }
+.footer-sep { margin: 0 8px; }
+
+/* ===== Loading ===== */
+.loading {
+    text-align: center;
+    padding: 80px 0;
+    color: var(--text-tertiary);
+    font-size: 1rem;
+}
+
+/* ===== Hero ===== */
+.hero {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.hero h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.hero-subtitle {
+    color: var(--text-tertiary);
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+}
+
+/* ===== Stat Cards Row ===== */
+.stat-cards {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+}
+.stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 28px;
+    text-align: center;
+    min-width: 160px;
+}
+.stat-card .stat-value {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2rem;
+    color: var(--accent);
+    line-height: 1.1;
+}
+.stat-card .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+/* ===== Search / Filter Bar ===== */
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.search-input::placeholder { color: var(--text-tertiary); }
+.search-input:focus { border-color: var(--accent); }
+
+.filter-select {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    outline: none;
+    cursor: pointer;
+}
+.filter-select:focus { border-color: var(--accent); }
+
+/* ===== Rankings Table ===== */
+.rankings-table-wrap {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.rankings-table th {
+    text-align: left;
+    padding: 14px 16px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.rankings-table th:hover { color: var(--text-secondary); }
+.rankings-table th.sort-active { color: var(--accent); }
+.rankings-table th .sort-arrow { margin-left: 4px; font-size: 0.7rem; }
+
+.rankings-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.rankings-table tbody tr {
+    transition: background 0.15s;
+    cursor: pointer;
+}
+.rankings-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.rank-cell {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    width: 50px;
+}
+.rank-cell.top3 { color: var(--accent); }
+
+.team-cell {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.rating-cell {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.change-cell {
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+.change-positive { color: var(--positive); }
+.change-negative { color: var(--negative); }
+.change-neutral { color: var(--text-tertiary); }
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* ===== Team Detail Page ===== */
+.team-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.team-header h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2.5rem;
+    text-transform: uppercase;
+}
+.team-rank-badge {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--accent);
+    background: var(--accent-muted);
+    padding: 4px 14px;
+    border-radius: 20px;
+}
+.team-rating-big {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 3rem;
+    margin-bottom: 24px;
+}
+.team-rating-change {
+    font-size: 1.2rem;
+    margin-left: 12px;
+    font-weight: 500;
+}
+
+/* ===== Card (generic) ===== */
+.card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--gap);
+    margin-bottom: var(--gap);
+}
+.card h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+}
+
+/* ===== Chart Container ===== */
+.chart-container {
+    width: 100%;
+    min-height: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* ===== Matches Table ===== */
+.matches-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.matches-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border);
+}
+.matches-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+.matches-table tbody tr:hover { background: var(--bg-tertiary); }
+
+/* ===== Methodology Page ===== */
+.methodology-content {
+    max-width: 800px;
+}
+.methodology-content h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2.2rem;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+}
+.methodology-content h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 32px 0 12px;
+}
+.methodology-content p {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.7;
+}
+.methodology-content code {
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent);
+}
+
+.formula-block {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin: 20px 0;
+    text-align: center;
+    font-size: 1.3rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+}
+
+.k-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9rem;
+}
+.k-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.k-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+.k-table td:first-child {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+    width: 60px;
+}
+
+/* ===== Back Link ===== */
+.back-link {
+    display: inline-block;
+    margin-bottom: 16px;
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+}
+.back-link:hover { color: var(--accent); }
+
+/* ===== Compare Page ===== */
+.team-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+.team-chip {
+    background: var(--accent-muted);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.team-chip-remove {
+    cursor: pointer;
+    opacity: 0.7;
+    font-size: 1rem;
+}
+.team-chip-remove:hover { opacity: 1; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    .hero h1 { font-size: 2rem; }
+    .stat-cards { gap: 10px; }
+    .stat-card { min-width: 120px; padding: 14px 18px; }
+    .stat-card .stat-value { font-size: 1.5rem; }
+    .rankings-table { font-size: 0.8rem; }
+    .rankings-table th, .rankings-table td { padding: 10px 10px; }
+    .filter-bar { flex-direction: column; }
+    .nav-links { gap: 2px; }
+    .nav-link { padding: 8px 10px; font-size: 0.8rem; }
+    .nav-logo { font-size: 1.1rem; }
+    .team-header h1 { font-size: 1.8rem; }
+}
+
+@media (max-width: 480px) {
+    :root { --gap: 16px; }
+    .hero h1 { font-size: 1.6rem; }
+    .stat-card { min-width: 100px; }
+}
+
+/* ===== Transitions ===== */
+@media (prefers-reduced-motion: no-preference) {
+    #app { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+}

@@ -14,6 +14,7 @@ from .output import (
 )
 from .pipeline import EloSystem
 from .tournaments import audit_tournament_mapping
+from .web_export import export_all
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,6 +44,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     # audit
     sub.add_parser("audit", help="Show tournament K-factor mapping")
+
+    # export-web
+    sub.add_parser("export-web", help="Export JSON data for website")
 
     return parser
 
@@ -123,6 +127,22 @@ def main() -> None:
         cmd_rankings(args)
     elif args.command == "audit":
         cmd_audit(args)
+    elif args.command == "export-web":
+        cmd_export_web(args)
+
+
+def cmd_export_web(_args: argparse.Namespace) -> None:
+    print("Downloading data...")
+    download_data()
+    print("Loading matches...")
+    matches = load_all()
+    print(f"  {len(matches)} matches loaded")
+    print("Computing Elo ratings...")
+    elo = EloSystem()
+    elo.process_all(matches)
+    print("Exporting JSON for website...")
+    export_all(elo)
+    print("Done.")
 
 
 if __name__ == "__main__":

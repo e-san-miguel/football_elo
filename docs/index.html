@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Women's Football Elo Ratings</title>
+    <meta name="description" content="Elo ratings for women's international football teams. Interactive rankings, team histories, and comparisons.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js"></script>
+</head>
+<body>
+    <nav id="main-nav">
+        <div class="nav-inner">
+            <a href="#/" class="nav-logo">Women's Football Elo</a>
+            <div class="nav-links">
+                <a href="#/" class="nav-link" data-route="rankings">Rankings</a>
+                <a href="#/compare" class="nav-link" data-route="compare">Compare</a>
+                <a href="#/history" class="nav-link" data-route="history">History</a>
+                <a href="#/methodology" class="nav-link" data-route="methodology">Methodology</a>
+            </div>
+        </div>
+    </nav>
+
+    <main id="app">
+        <div class="loading">Loading...</div>
+    </main>
+
+    <footer id="main-footer">
+        <div class="footer-inner">
+            <span id="footer-updated"></span>
+            <span class="footer-sep">&middot;</span>
+            <a href="https://github.com/e-san-miguel/football_elo" target="_blank" rel="noopener">GitHub</a>
+            <span class="footer-sep">&middot;</span>
+            <span>Data: <a href="https://github.com/martj42/womens-international-results" target="_blank" rel="noopener">martj42</a></span>
+        </div>
+    </footer>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
