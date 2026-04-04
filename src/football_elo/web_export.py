@@ -399,16 +399,20 @@ def export_team_histories(
             if rk is not None:
                 rec["rk"] = rk
 
-        # Compute best/worst rank from 1990
-        rank_values = [r["rk"] for r in rank_history.get(team, [])]
+        # Compute best/worst rank
+        team_ranks = rank_history.get(team, [])
+        rank_values = [r["rk"] for r in team_ranks]
         best_rank = min(rank_values) if rank_values else None
         worst_rank = max(rank_values) if rank_values else None
-        best_rank_date = next(
-            (r["date"] for r in rank_history.get(team, []) if r["rk"] == best_rank), ""
-        ) if best_rank is not None else ""
-        worst_rank_date = next(
-            (r["date"] for r in rank_history.get(team, []) if r["rk"] == worst_rank), ""
-        ) if worst_rank is not None else ""
+
+        # First and last time best rank was achieved
+        best_rank_dates = [r["date"] for r in team_ranks if r["rk"] == best_rank] if best_rank is not None else []
+        best_rank_first = best_rank_dates[0] if best_rank_dates else ""
+        best_rank_last = best_rank_dates[-1] if best_rank_dates else ""
+
+        worst_rank_dates = [r["date"] for r in team_ranks if r["rk"] == worst_rank] if worst_rank is not None else []
+        worst_rank_first = worst_rank_dates[0] if worst_rank_dates else ""
+        worst_rank_last = worst_rank_dates[-1] if worst_rank_dates else ""
 
         # Top 5 wins and worst 5 losses by rating change
         sorted_by_rc = sorted(records, key=lambda r: r["rc"])
@@ -419,9 +423,11 @@ def export_team_histories(
             "team": team,
             "slug": slug,
             "best_rank": best_rank,
-            "best_rank_date": best_rank_date,
+            "best_rank_first": best_rank_first,
+            "best_rank_last": best_rank_last,
             "worst_rank": worst_rank,
-            "worst_rank_date": worst_rank_date,
+            "worst_rank_first": worst_rank_first,
+            "worst_rank_last": worst_rank_last,
             "top_wins": [
                 {"date": r["date"], "opponent": r["opponent"], "ts": r["ts"],
                  "os": r["os"], "rc": r["rc"], "tournament": r["tournament"]}

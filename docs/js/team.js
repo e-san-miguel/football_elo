@@ -73,11 +73,11 @@ export async function render(container, slug) {
         statCard(formatRating(lowRating), 'Lowest Rating'),
         statCard(
             teamData.best_rank != null ? `#${teamData.best_rank}` : 'N/A',
-            teamData.best_rank_date ? `Best Rank (${teamData.best_rank_date})` : 'Best Rank'
+            bestRankLabel(teamData)
         ),
         statCard(
             teamData.worst_rank != null ? `#${teamData.worst_rank}` : 'N/A',
-            teamData.worst_rank_date ? `Worst Rank (${teamData.worst_rank_date})` : 'Worst Rank'
+            worstRankLabel(teamData)
         ),
         statCard(history.length.toString(), 'Matches'),
         statCard(`${wins}W ${draws}D ${losses}L`, 'Record'),
@@ -124,6 +124,20 @@ export async function render(container, slug) {
 
     // Render initial chart
     renderChart('elo');
+}
+
+function rankDateLabel(first, last, prefix) {
+    if (!first) return prefix;
+    if (first === last) return `${prefix} (${first})`;
+    return `${prefix} (${first} to ${last})`;
+}
+
+function bestRankLabel(data) {
+    return rankDateLabel(data.best_rank_first, data.best_rank_last, 'Best Rank');
+}
+
+function worstRankLabel(data) {
+    return rankDateLabel(data.worst_rank_first, data.worst_rank_last, 'Worst Rank');
 }
 
 function statCard(value, label) {
