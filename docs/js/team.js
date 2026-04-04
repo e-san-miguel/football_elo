@@ -129,7 +129,7 @@ export async function render(container, slug) {
 function rankDateLabel(first, last, prefix) {
     if (!first) return prefix;
     if (first === last) return `${prefix} (${first})`;
-    return `${prefix} (${first} to ${last})`;
+    return `${prefix} (first: ${first}, last: ${last})`;
 }
 
 function bestRankLabel(data) {
