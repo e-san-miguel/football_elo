@@ -1,4 +1,4 @@
-"""Tournament classification and K-factor mapping for women's football."""
+"""Tournament classification and K-factor mapping for football."""
 
 import re
 
@@ -13,23 +13,34 @@ _K60 = {
 
 # K=50: Continental championship finals and intercontinental
 _K50 = {
+    # UEFA
     "UEFA Euro",
     "Euro",
     "European Championship",
+    # CONMEBOL
     "Copa América",
+    # AFC
     "AFC Championship",
     "AFC Asian Cup",
+    # CONCACAF
     "CONCACAF Championship",
     "CONCACAF Gold Cup",
+    "Gold Cup",
+    "CCCF Championship",
+    # CAF
     "African Championship",
     "African Cup of Nations",
+    # OFC
     "OFC Championship",
     "OFC Nations Cup",
+    "Oceania Nations Cup",
+    # Intercontinental
     "Finalissima",
+    "Confederations Cup",
+    "CONMEBOL–UEFA Cup of Champions",
 }
 
-# K=40: Explicit qualifier/Olympic qualifying tournaments
-# (most are caught by regex, but these are explicit overrides)
+# K=40: Explicit qualifier/Olympic qualifying tournaments + Nations Leagues
 _K40 = {
     "AFC Olympic Qualifying Tournament",
     "CONCACAF Olympic Qualifying Tournament",
@@ -41,6 +52,11 @@ _K40 = {
     "AFC Olympic qualification",
     "Olympic qualification",
     "Olympic qualifyication",  # Typo in data
+    # Nations Leagues (function as qualifiers)
+    "UEFA Nations League",
+    "UEFA Women's Nations League",
+    "CONCACAF Nations League",
+    "CONMEBOL Nations League",
 }
 
 # Patterns that indicate K=40 (qualifiers)
