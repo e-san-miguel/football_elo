@@ -35,8 +35,7 @@ export async function render(container) {
                 <tr><td>0-1</td><td>1.0</td></tr>
                 <tr><td>2</td><td>1.5</td></tr>
                 <tr><td>3</td><td>1.75</td></tr>
-                <tr><td>4</td><td>1.875</td></tr>
-                <tr><td>5+</td><td>(11 + N) / 8</td></tr>
+                <tr><td>3+</td><td>1.75 (capped)</td></tr>
             </tbody>
         </table>
 

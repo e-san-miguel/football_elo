@@ -51,16 +51,16 @@ class TestGoalDifferenceIndex:
         assert goal_difference_index(-2) == 1.5
 
     def test_three_goals(self):
-        assert goal_difference_index(3) == pytest.approx(14 / 8)  # 1.75
+        assert goal_difference_index(3) == 1.75
 
     def test_five_goals(self):
-        assert goal_difference_index(5) == pytest.approx(16 / 8)  # 2.0
+        assert goal_difference_index(5) == 1.75  # capped
 
     def test_ten_goals(self):
-        assert goal_difference_index(10) == pytest.approx(21 / 8)  # 2.625
+        assert goal_difference_index(10) == 1.75  # capped
 
     def test_eleven_goals(self):
-        assert goal_difference_index(11) == pytest.approx(22 / 8)  # 2.75
+        assert goal_difference_index(11) == 1.75  # capped
 
 
 class TestMatchResultValue:

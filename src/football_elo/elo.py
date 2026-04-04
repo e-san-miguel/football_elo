@@ -21,14 +21,14 @@ def goal_difference_index(goal_diff: int) -> float:
 
     - 0 or 1: G = 1
     - 2:      G = 1.5
-    - N >= 3: G = (11 + N) / 8
+    - 3+:     G = 1.75 (capped)
     """
     n = abs(goal_diff)
     if n <= 1:
         return 1.0
     if n == 2:
         return 1.5
-    return (11 + n) / 8
+    return 1.75
 
 
 def match_result_value(
