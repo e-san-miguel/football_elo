@@ -45,6 +45,7 @@ html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 body {
@@ -239,7 +240,8 @@ a:hover { color: var(--accent-hover); }
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .rankings-table {
@@ -352,6 +354,8 @@ a:hover { color: var(--accent-hover); }
     border-radius: var(--radius);
     padding: var(--gap);
     margin-bottom: var(--gap);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .card h2 {
     font-family: var(--font-display);
@@ -512,16 +516,25 @@ a:hover { color: var(--accent-hover); }
     .rankings-table { font-size: 0.8rem; }
     .rankings-table th, .rankings-table td { padding: 10px 10px; }
     .filter-bar { flex-direction: column; }
-    .nav-links { gap: 2px; }
-    .nav-link { padding: 8px 10px; font-size: 0.8rem; }
-    .nav-logo { font-size: 1.1rem; }
+    .nav-inner { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .nav-links { gap: 2px; flex-shrink: 0; }
+    .nav-link { padding: 8px 10px; font-size: 0.8rem; white-space: nowrap; }
+    .nav-logo { font-size: 1.1rem; white-space: nowrap; }
     .team-header h1 { font-size: 1.8rem; }
+    .wc-match-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .wc-group-detail { overflow-x: auto; }
+    .wc-cta-btn { font-size: 0.95rem; padding: 12px 24px; }
 }
 
 @media (max-width: 480px) {
-    :root { --gap: 16px; }
-    .hero h1 { font-size: 1.6rem; }
-    .stat-card { min-width: 100px; }
+    :root { --gap: 12px; }
+    .hero h1 { font-size: 1.4rem; }
+    .stat-cards { flex-wrap: wrap; }
+    .stat-card { min-width: 90px; padding: 10px 14px; }
+    .stat-card .stat-value { font-size: 1.2rem; }
+    .stat-card .stat-label { font-size: 0.65rem; }
+    .team-header h1 { font-size: 1.4rem; }
+    .flag-lg { width: 50px; height: 34px; }
 }
 
 /* ===== World Cup CTA Button ===== */
@@ -556,7 +569,8 @@ a:hover { color: var(--accent-hover); }
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .wc-group-header {
     font-family: var(--font-display);
