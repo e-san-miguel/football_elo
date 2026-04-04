@@ -5,6 +5,7 @@
 import { render as renderRankings } from './rankings.js';
 import { render as renderTeam } from './team.js';
 import { render as renderCompare } from './compare.js';
+import { render as renderHistory } from './history.js';
 import { render as renderMethodology } from './methodology.js';
 
 const app = document.getElementById('app');
@@ -14,6 +15,7 @@ const routes = [
     { pattern: /^#\/compare\/(.+)\/(.+)$/, handler: (m) => renderCompare(app, m[1], m[2]) },
     { pattern: /^#\/compare\/(.+)$/, handler: (m) => renderCompare(app, m[1]) },
     { pattern: /^#\/compare$/, handler: () => renderCompare(app) },
+    { pattern: /^#\/history$/, handler: () => renderHistory(app) },
     { pattern: /^#\/methodology$/, handler: () => renderMethodology(app) },
     { pattern: /^#\/$/, handler: () => renderRankings(app) },
 ];

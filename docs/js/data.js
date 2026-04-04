@@ -41,3 +41,7 @@ export async function getTournaments() {
 export async function getTeamFlags() {
     return fetchJSON('team_flags.json');
 }
+
+export async function getHistoricalRankings() {
+    return fetchJSON('historical_rankings.json');
+}

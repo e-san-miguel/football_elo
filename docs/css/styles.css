@@ -524,6 +524,37 @@ a:hover { color: var(--accent-hover); }
     .stat-card { min-width: 100px; }
 }
 
+/* ===== History Slider ===== */
+.history-slider {
+    flex: 1;
+    min-width: 200px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+.history-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg-primary);
+    box-shadow: 0 0 6px rgba(6, 214, 160, 0.4);
+}
+.history-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg-primary);
+}
+
 /* ===== Flags ===== */
 .flag-sm {
     width: 24px;

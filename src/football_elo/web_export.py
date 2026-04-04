@@ -132,6 +132,74 @@ def _compute_rank_history(elo: EloSystem) -> dict[str, list[dict]]:
     return rank_history
 
 
+def _compute_monthly_snapshots(elo: EloSystem) -> list[dict]:
+    """Compute ranking snapshots at the 1st of each month from 1990 onward.
+
+    Returns a list of {"date": "YYYY-MM-01", "teams": [{"team", "slug", "rating", "rank"}, ...]}.
+    """
+    history_df = elo.get_history_dataframe()
+    running_ratings: dict[str, float] = {}
+
+    date_groups = history_df.groupby("date")
+    sorted_dates = sorted(date_groups.groups.keys())
+
+    snapshots = []
+    next_snapshot = pd.Timestamp("1990-01-01")
+
+    for date in sorted_dates:
+        group = date_groups.get_group(date)
+        for _, row in group.iterrows():
+            running_ratings[row["team"]] = row["rating_after"]
+
+        # Emit snapshots for any months we've passed
+        while next_snapshot <= date and next_snapshot <= sorted_dates[-1]:
+            # Filter to teams with >= MIN_MATCHES and recent activity
+            team_counts = history_df[
+                history_df["date"] <= date
+            ].groupby("team").size()
+
+            sorted_teams = sorted(
+                running_ratings.items(), key=lambda x: x[1], reverse=True
+            )
+            ranked = []
+            rank = 0
+            for team, rating in sorted_teams:
+                count = team_counts.get(team, 0)
+                if count < 10:  # lighter filter for historical
+                    continue
+                rank += 1
+                ranked.append({
+                    "t": team,
+                    "s": slugify(team),
+                    "r": round(rating, 1),
+                    "rk": rank,
+                })
+                if rank >= 50:  # top 50 per snapshot
+                    break
+
+            snapshots.append({
+                "date": str(next_snapshot.date()),
+                "teams": ranked,
+            })
+            # Advance to next month
+            if next_snapshot.month == 12:
+                next_snapshot = pd.Timestamp(f"{next_snapshot.year + 1}-01-01")
+            else:
+                next_snapshot = pd.Timestamp(
+                    f"{next_snapshot.year}-{next_snapshot.month + 1:02d}-01"
+                )
+
+    return snapshots
+
+
+def export_historical_rankings(elo: EloSystem, output_dir: Path) -> None:
+    """Export monthly ranking snapshots as JSON."""
+    snapshots = _compute_monthly_snapshots(elo)
+    (output_dir / "historical_rankings.json").write_text(
+        json.dumps(snapshots, separators=(",", ":")), encoding="utf-8"
+    )
+
+
 def _compute_smoothed_ratings(
     history_records: list[dict], window_days: int = 365
 ) -> list[float]:
@@ -340,17 +408,17 @@ def export_history_top_n(elo: EloSystem, n: int, output_dir: Path) -> None:
 def export_tournaments_json(output_dir: Path) -> None:
     """Export major tournament dates for quick-jump buttons."""
     tournaments = [
-        {"name": "2023 WWC Final", "date": "2023-08-20"},
-        {"name": "2019 WWC Final", "date": "2019-07-07"},
-        {"name": "2015 WWC Final", "date": "2015-07-05"},
-        {"name": "2011 WWC Final", "date": "2011-07-17"},
-        {"name": "2007 WWC Final", "date": "2007-09-30"},
-        {"name": "2003 WWC Final", "date": "2003-10-12"},
-        {"name": "1999 WWC Final", "date": "1999-07-10"},
-        {"name": "1995 WWC Final", "date": "1995-06-18"},
-        {"name": "1991 WWC Final", "date": "1991-11-30"},
-        {"name": "2024 Olympics", "date": "2024-08-10"},
-        {"name": "2021 Olympics", "date": "2021-08-06"},
+        {"name": "After 2023 WWC", "date": "2023-08-20"},
+        {"name": "After 2019 WWC", "date": "2019-07-07"},
+        {"name": "After 2015 WWC", "date": "2015-07-05"},
+        {"name": "After 2011 WWC", "date": "2011-07-17"},
+        {"name": "After 2007 WWC", "date": "2007-09-30"},
+        {"name": "After 2003 WWC", "date": "2003-10-12"},
+        {"name": "After 1999 WWC", "date": "1999-07-10"},
+        {"name": "After 1995 WWC", "date": "1995-06-18"},
+        {"name": "After 1991 WWC", "date": "1991-11-30"},
+        {"name": "After 2024 Olympics", "date": "2024-08-10"},
+        {"name": "After 2021 Olympics", "date": "2021-08-06"},
     ]
     (output_dir / "tournaments.json").write_text(
         json.dumps(tournaments, separators=(",", ":")), encoding="utf-8"
@@ -382,3 +450,7 @@ def export_all(elo: EloSystem, output_dir: Path = DOCS_DATA_DIR) -> None:
 
     export_tournaments_json(output_dir)
     print("    tournaments.json")
+
+    print("    Computing historical rankings...")
+    export_historical_rankings(elo, output_dir)
+    print("    historical_rankings.json")
