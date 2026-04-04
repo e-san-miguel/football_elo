@@ -610,7 +610,6 @@ a:hover { color: var(--accent-hover); }
 }
 .wc-group-card.wc-expanded {
     grid-column: 1 / -1;
-    max-width: 700px;
 }
 .wc-group-detail { padding: 16px; }
 .wc-group-table {
