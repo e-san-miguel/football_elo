@@ -170,10 +170,12 @@ def _compute_rank_history(
         if date < pd.Timestamp(start_date):
             continue
 
-        # Compute ranks at this date
-        sorted_teams = sorted(
-            running_ratings.items(), key=lambda x: x[1], reverse=True
-        )
+        # Compute ranks at this date (FIFA members only)
+        fifa_ratings = [
+            (team, rating) for team, rating in running_ratings.items()
+            if slugify(team) not in NON_FIFA_SLUGS
+        ]
+        sorted_teams = sorted(fifa_ratings, key=lambda x: x[1], reverse=True)
         for rank_idx, (team, _rating) in enumerate(sorted_teams, 1):
             # Only record if this team played on this date
             if team in group["team"].values:
@@ -211,9 +213,11 @@ def _compute_monthly_snapshots(elo: EloSystem, start_date: str = "1990-01-01") -
                 history_df["date"] <= date
             ].groupby("team").size()
 
-            sorted_teams = sorted(
-                running_ratings.items(), key=lambda x: x[1], reverse=True
-            )
+            fifa_ratings = [
+                (team, rating) for team, rating in running_ratings.items()
+                if slugify(team) not in NON_FIFA_SLUGS
+            ]
+            sorted_teams = sorted(fifa_ratings, key=lambda x: x[1], reverse=True)
             ranked = []
             rank = 0
             for team, rating in sorted_teams:
