@@ -55,6 +55,7 @@ const STORAGE_KEY = "wc2026-bracket";
 let state = { scores: {}, knockoutPicks: { r32: [], r16: [], qf: [], sf: [], final: [] } };
 let flags = {};
 let containerRef = null;
+let teamRatings = {};  // team name -> Elo rating from JSON
 
 // ===== Slugify =====
 
@@ -79,6 +80,77 @@ function loadState() {
         state.scores = saved.scores || {};
         state.knockoutPicks = saved.knockoutPicks || { r32: [], r16: [], qf: [], sf: [], final: [] };
     } catch {}
+}
+
+// ===== Simulation =====
+
+function eloExpected(ratingA, ratingB) {
+    return 1.0 / (Math.pow(10, -(ratingA - ratingB) / 400) + 1.0);
+}
+
+function simMatchProbs(ratingA, ratingB) {
+    const we = eloExpected(ratingA, ratingB);
+    let pDraw = Math.max(0, 0.38 - 0.38 * Math.pow(we - 0.5, 2) / 0.25);
+    pDraw = Math.min(pDraw, 0.38);
+    let pA = Math.max(0, we - 0.5 * pDraw);
+    let pB = Math.max(0, 1 - we - 0.5 * pDraw);
+    const total = pA + pDraw + pB;
+    return [pA / total, pDraw / total, pB / total];
+}
+
+function simRandomScore(pA, pDraw, pB) {
+    const r = Math.random();
+    if (r < pA) {
+        // Home win — random scoreline like 2-1, 1-0, 3-1
+        const homeGoals = 1 + Math.floor(Math.random() * 3);
+        const awayGoals = Math.floor(Math.random() * homeGoals);
+        return [homeGoals, awayGoals];
+    } else if (r < pA + pDraw) {
+        const goals = Math.floor(Math.random() * 3);
+        return [goals, goals];
+    } else {
+        const awayGoals = 1 + Math.floor(Math.random() * 3);
+        const homeGoals = Math.floor(Math.random() * awayGoals);
+        return [homeGoals, awayGoals];
+    }
+}
+
+function simulateFullTournament() {
+    // 1. Simulate all group matches
+    state.scores = {};
+    state.knockoutPicks = { r32: [], r16: [], qf: [], sf: [], final: [] };
+
+    for (const g of Object.keys(GROUPS)) {
+        const teams = GROUPS[g];
+        for (const [hi, ai, date, venue] of SCHEDULE[g]) {
+            const home = teams[hi], away = teams[ai];
+            const rH = teamRatings[home] || 1500;
+            const rA = teamRatings[away] || 1500;
+            const [pA, pD, pB] = simMatchProbs(rH, rA);
+            const [hg, ag] = simRandomScore(pA, pD, pB);
+            state.scores[`${g}-${hi}-${ai}`] = { home: hg, away: ag };
+        }
+    }
+
+    // 2. Build R32 matchups and simulate knockout
+    const r32 = buildR32Matchups();
+    r32.forEach((m, i) => {
+        const rA = teamRatings[m.teamA] || 1500;
+        const rB = teamRatings[m.teamB] || 1500;
+        state.knockoutPicks.r32[i] = Math.random() < eloExpected(rA, rB) ? m.teamA : m.teamB;
+    });
+
+    // R16 through Final
+    for (const round of ['r16', 'qf', 'sf', 'final']) {
+        const matchups = getKnockoutMatchups(round);
+        matchups.forEach((m, i) => {
+            const rA = teamRatings[m.teamA] || 1500;
+            const rB = teamRatings[m.teamB] || 1500;
+            state.knockoutPicks[round][i] = Math.random() < eloExpected(rA, rB) ? m.teamA : m.teamB;
+        });
+    }
+
+    saveState();
 }
 
 // ===== Computation =====
@@ -225,6 +297,16 @@ export function renderBracketBuilder(container, wcData, flagsData) {
     containerRef = container;
     loadState();
 
+    // Extract ratings from wcData (only if provided — preserve existing on re-render)
+    if (wcData) {
+        teamRatings = {};
+        for (const group of Object.values(wcData.groups)) {
+            for (const t of group.teams) {
+                teamRatings[t.team] = t.rating;
+            }
+        }
+    }
+
     const section = el('div', { class: 'bracket-builder' });
 
     // Header
@@ -233,6 +315,24 @@ export function renderBracketBuilder(container, wcData, flagsData) {
         style: 'text-align:center;color:var(--text-tertiary);margin-bottom:24px;font-size:0.9rem',
         text: 'Predict every match and build your path to the final.',
     }));
+
+    // Action buttons
+    const actions = el('div', { style: 'display:flex;gap:12px;justify-content:center;margin-bottom:24px;flex-wrap:wrap' });
+    actions.appendChild(el('button', {
+        class: 'wc-cta-btn',
+        text: 'Simulate Tournament',
+        style: 'font-size:0.95rem;padding:12px 28px',
+        onclick: () => {
+            simulateFullTournament();
+            // Re-render entire bracket builder
+            const builder = document.querySelector('.bracket-builder');
+            if (builder) {
+                builder.remove();
+                renderBracketBuilder(containerRef, null, flags);
+            }
+        },
+    }));
+    section.appendChild(actions);
 
     // Progress bar
     section.appendChild(renderProgress());
