@@ -156,9 +156,12 @@ function simulateFullTournament() {
 
 async function animatedSimulate() {
     // Show thinking overlay
+    const dots = el('div', { class: 'sim-brain' });
+    for (let i = 0; i < 5; i++) dots.appendChild(el('div', { class: 'sim-dot' }));
     const overlay = el('div', { class: 'sim-overlay' }, [
-        el('div', { class: 'sim-spinner' }),
-        el('div', { class: 'sim-thinking-text', text: 'Simulating tournament...' }),
+        dots,
+        el('div', { class: 'sim-thinking-text', text: 'Analyzing matchups...' }),
+        el('div', { class: 'sim-sub-text', text: 'Running 48-team tournament simulation' }),
     ]);
     document.body.appendChild(overlay);
 
