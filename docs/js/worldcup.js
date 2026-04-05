@@ -4,6 +4,7 @@
 
 import { getTeamFlags } from './data.js';
 import { el, flagImg } from './utils.js';
+import { renderBracketBuilder } from './bracket.js';
 
 const BASE = document.querySelector('base')?.href
     || window.location.pathname.replace(/\/[^/]*$/, '/');
@@ -44,6 +45,9 @@ export async function render(container) {
         grid.appendChild(buildGroupCard(groupName, wcData.groups[groupName], flags));
     }
     container.appendChild(grid);
+
+    // Bracket builder
+    renderBracketBuilder(container, wcData, flags);
 }
 
 function buildRankingsCard(wcData, flags) {
