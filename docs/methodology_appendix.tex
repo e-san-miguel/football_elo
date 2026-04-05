@@ -117,13 +117,29 @@ The goal difference index $G$ amplifies rating changes for decisive victories:
 G = \begin{cases}
 1.0 & \text{if } |g| \leq 1 \\
 1.5 & \text{if } |g| = 2 \\
-1.75 & \text{if } |g| \geq 3
+\dfrac{11 + |g|}{8} & \text{if } |g| \geq 3
 \end{cases}
 \label{eq:gfactor}
 \end{equation}
-where $g = \text{home\_score} - \text{away\_score}$ is the goal difference.
+where $g = \text{home\_score} - \text{away\_score}$ is the goal difference. Selected values are shown in Table~\ref{tab:gfactor}.
 
-\paragraph{Remark.} The original eloratings.net system uses $G = (11 + |g|) / 8$ for $|g| \geq 3$, which grows without bound. We cap $G$ at 1.75 to prevent disproportionate rating inflation from lopsided results against weak opponents. A 3-0 victory is treated as equally convincing as an 8-0 victory.
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+$|g|$ & $G$ \\
+\midrule
+0--1 & 1.000 \\
+2 & 1.500 \\
+3 & 1.750 \\
+4 & 1.875 \\
+5 & 2.000 \\
+10 & 2.625 \\
+\bottomrule
+\end{tabular}
+\caption{Goal difference multiplier values.}
+\label{tab:gfactor}
+\end{table}
 
 \subsection{Match Result}
 \label{sec:matchresult}
