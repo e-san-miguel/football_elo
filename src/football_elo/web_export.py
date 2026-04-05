@@ -410,14 +410,28 @@ def export_team_histories(
 
     history_df = elo.get_history_dataframe()
 
+    # Build opponent lookup: (date, team, opponent) -> (rating_before, rank)
+    # For each record, the "opponent's" data is the record where team=opponent, opponent=team
+    opp_lookup = {}
+    for _, r in history_df.iterrows():
+        key = (str(r["date"].date()), r["opponent"], r["team"])
+        opp_lookup[key] = r["rating_before"]
+
+    # Build rank lookup: (team, date) -> rank
+    all_rank_lookup = {}
+    for team_name, ranks in rank_history.items():
+        for entry in ranks:
+            all_rank_lookup[(team_name, entry["date"])] = entry["rk"]
+
     for team in elo.ratings:
         team_hist = history_df[history_df["team"] == team].copy()
         slug = slugify(team)
 
         records = []
         for _, r in team_hist.iterrows():
-            records.append({
-                "date": str(r["date"].date()),
+            date_str = str(r["date"].date())
+            rec = {
+                "date": date_str,
                 "opponent": r["opponent"],
                 "ts": int(r["team_score"]),
                 "os": int(r["opponent_score"]),
@@ -426,7 +440,17 @@ def export_team_histories(
                 "rb": round(r["rating_before"], 1),
                 "ra": round(r["rating_after"], 1),
                 "rc": round(r["rating_change"], 1),
-            })
+            }
+            # Add opponent rating and rank for World Cup matches
+            if r["tournament"] == "FIFA World Cup":
+                opp_key = (date_str, team, r["opponent"])
+                orb = opp_lookup.get(opp_key)
+                if orb is not None:
+                    rec["orb"] = round(orb, 1)
+                ork = all_rank_lookup.get((r["opponent"], date_str))
+                if ork is not None:
+                    rec["ork"] = ork
+            records.append(rec)
 
         # Add smoothed ratings
         smoothed = _compute_smoothed_ratings(records)

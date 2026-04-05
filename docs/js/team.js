@@ -119,6 +119,10 @@ export async function render(container, slug) {
     chartCard.appendChild(el('div', { class: 'chart-container', id: 'team-chart' }));
     container.appendChild(chartCard);
 
+    // World Cup History
+    const wcSection = buildWorldCupHistory(history, flags);
+    if (wcSection) container.appendChild(wcSection);
+
     // Top 5 wins and worst 5 losses
     if (teamData.top_wins?.length) {
         container.appendChild(buildHighlightTable('Top Results (by Elo gained)', teamData.top_wins));
@@ -236,6 +240,94 @@ function renderPlotly(dates, yData, yTitle, hoverText, color, teamName, invertY)
     };
 
     Plotly.newPlot('team-chart', [trace], layout, CHART_CONFIG);
+}
+
+function buildWorldCupHistory(history, flags) {
+    const wcMatches = history.filter(h => h.tournament === 'FIFA World Cup');
+    if (wcMatches.length === 0) return null;
+
+    // Group by year (each year = one WC edition)
+    const editions = {};
+    for (const m of wcMatches) {
+        const year = m.date.slice(0, 4);
+        if (!editions[year]) editions[year] = [];
+        editions[year].push(m);
+    }
+    const years = Object.keys(editions).sort().reverse();
+
+    const card = el('div', { class: 'card' });
+    card.appendChild(el('h2', { text: 'World Cup History' }));
+
+    // Edition buttons
+    const btnRow = el('div', { class: 'chart-toggle', style: 'flex-wrap:wrap' });
+    for (const year of years) {
+        btnRow.appendChild(el('button', {
+            class: 'toggle-btn',
+            text: year,
+            'data-year': year,
+            onclick: () => {
+                // Toggle active button
+                btnRow.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                const clicked = btnRow.querySelector(`[data-year="${year}"]`);
+                if (clicked) clicked.classList.add('active');
+                // Show table
+                const tableDiv = document.getElementById('wc-edition-table');
+                if (tableDiv) {
+                    tableDiv.innerHTML = '';
+                    tableDiv.appendChild(buildWCEditionTable(editions[year], flags));
+                }
+            },
+        }));
+    }
+    card.appendChild(btnRow);
+
+    // Table container
+    card.appendChild(el('div', { id: 'wc-edition-table', style: 'margin-top:16px' }));
+
+    return card;
+}
+
+function buildWCEditionTable(matches, flags) {
+    const table = el('table', { class: 'matches-table' });
+    const thead = el('thead');
+    const headerRow = el('tr');
+    for (const h of ['Date', 'Opponent', '', 'Score', 'Elo', 'Rank', 'Opp Elo', 'Opp Rank', 'Change']) {
+        headerRow.appendChild(el('th', { text: h }));
+    }
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = el('tbody');
+    for (const m of matches) {
+        const result = m.ts > m.os ? 'W' : m.ts < m.os ? 'L' : 'D';
+        const tr = el('tr');
+        tr.appendChild(el('td', { text: m.date }));
+        tr.appendChild(el('td', { text: m.opponent }));
+
+        const flagTd = el('td');
+        const f = flagImg(flags[slugify(m.opponent)], m.opponent, 'sm');
+        if (f) flagTd.appendChild(f);
+        tr.appendChild(flagTd);
+
+        tr.appendChild(el('td', { text: `${result} ${m.ts}-${m.os}` }));
+        tr.appendChild(el('td', { text: formatRating(m.rb) }));
+        tr.appendChild(el('td', { text: m.rk != null ? `#${m.rk}` : '-' }));
+        tr.appendChild(el('td', { text: m.orb != null ? formatRating(m.orb) : '-' }));
+        tr.appendChild(el('td', { text: m.ork != null ? `#${m.ork}` : '-' }));
+        tr.appendChild(el('td', {
+            class: changeClass(m.rc),
+            text: formatChange(m.rc),
+        }));
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    return table;
+}
+
+function slugify(name) {
+    return name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().trim().replace(/[^\w\s-]/g, '')
+        .replace(/[\s_]+/g, '-').replace(/-+/g, '-');
 }
 
 function buildHighlightTable(title, records) {
