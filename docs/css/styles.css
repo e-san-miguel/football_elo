@@ -539,7 +539,8 @@ a:hover { color: var(--accent-hover); }
         justify-content: center;
         text-align: center;
     }
-    .wc-prob-bar { width: 100%; height: 30px; }
+    .wc-prob-bar { width: 100% !important; flex: none !important; min-width: 0 !important; height: 30px; }
+    .wc-group-card.wc-expanded { width: 100%; }
     .wc-cta-btn { font-size: 0.95rem; padding: 12px 24px; }
 }
 
