@@ -155,127 +155,24 @@ function simulateFullTournament() {
 }
 
 async function animatedSimulate() {
-    // 1. Compute all results up front but store separately
-    const simScores = {};
-    const simKnockout = { r32: [], r16: [], qf: [], sf: [], final: [] };
-
-    for (const g of Object.keys(GROUPS)) {
-        const teams = GROUPS[g];
-        for (const [hi, ai] of SCHEDULE[g]) {
-            const home = teams[hi], away = teams[ai];
-            const rH = teamRatings[home] || 1500;
-            const rA = teamRatings[away] || 1500;
-            const [pA, pD, pB] = simMatchProbs(rH, rA);
-            const [hg, ag] = simRandomScore(pA, pD, pB);
-            simScores[`${g}-${hi}-${ai}`] = { home: hg, away: ag };
-        }
-    }
-
-    // 2. Show thinking overlay
+    // Show thinking overlay
     const overlay = el('div', { class: 'sim-overlay' }, [
         el('div', { class: 'sim-spinner' }),
         el('div', { class: 'sim-thinking-text', text: 'Simulating tournament...' }),
     ]);
     document.body.appendChild(overlay);
+
+    // Compute everything instantly
+    simulateFullTournament();
+
     await delay(1500);
     overlay.remove();
 
-    // 3. Clear current state and re-render empty
-    state.scores = {};
-    state.knockoutPicks = { r32: [], r16: [], qf: [], sf: [], final: [] };
-    saveState();
+    // Re-render with all results
     const builder = document.querySelector('.bracket-builder');
     if (builder) {
         builder.remove();
         renderBracketBuilder(containerRef, cachedWcData, flags);
-    }
-
-    // 4. Fill in groups one at a time
-    const groups = Object.keys(GROUPS).sort();
-    for (const g of groups) {
-        // Open this group
-        document.querySelectorAll('.bracket-group-detail').forEach(d => { d.style.display = 'none'; });
-        const detail = document.getElementById(`bracket-group-${g}`);
-        if (detail) {
-            detail.style.display = 'block';
-            detail.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        await delay(300);
-
-        // Fill in each match one by one
-        const schedule = SCHEDULE[g];
-        for (const [hi, ai] of schedule) {
-            const key = `${g}-${hi}-${ai}`;
-            state.scores[key] = simScores[key];
-
-            // Update the input fields visually
-            const inputs = detail?.querySelectorAll('.bracket-match-input');
-            if (inputs) {
-                const matchIdx = schedule.findIndex(([h, a]) => h === hi && a === ai);
-                const row = inputs[matchIdx];
-                if (row) {
-                    const scoreInputs = row.querySelectorAll('.bracket-score-input');
-                    if (scoreInputs[0]) scoreInputs[0].value = simScores[key].home;
-                    if (scoreInputs[1]) scoreInputs[1].value = simScores[key].away;
-                }
-            }
-            await delay(150);
-        }
-
-        // Update standings display
-        const standingsEl = document.getElementById(`bracket-standings-${g}`);
-        if (standingsEl) standingsEl.replaceWith(renderMiniStandings(g));
-        updateProgress();
-        await delay(400);
-    }
-
-    // Close last group
-    document.querySelectorAll('.bracket-group-detail').forEach(d => { d.style.display = 'none'; });
-    saveState();
-    await delay(300);
-
-    // 5. Now compute and fill knockout picks one round at a time
-    // First need to render R32
-    renderKnockoutRounds();
-    const knockout = document.getElementById('bracket-knockout');
-    if (knockout) knockout.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    await delay(500);
-
-    // Simulate and fill R32
-    const r32 = buildR32Matchups();
-    for (let i = 0; i < r32.length; i++) {
-        const m = r32[i];
-        const rA = teamRatings[m.teamA] || 1500;
-        const rB = teamRatings[m.teamB] || 1500;
-        state.knockoutPicks.r32[i] = Math.random() < eloExpected(rA, rB) ? m.teamA : m.teamB;
-        await delay(80);
-    }
-    saveState();
-    renderKnockoutRounds();
-    await delay(600);
-
-    // R16 through Final
-    for (const round of ['r16', 'qf', 'sf', 'final']) {
-        const matchups = getKnockoutMatchups(round);
-        if (matchups.length === 0) break;
-
-        for (let i = 0; i < matchups.length; i++) {
-            const m = matchups[i];
-            const rA = teamRatings[m.teamA] || 1500;
-            const rB = teamRatings[m.teamB] || 1500;
-            state.knockoutPicks[round][i] = Math.random() < eloExpected(rA, rB) ? m.teamA : m.teamB;
-            await delay(200);
-        }
-        saveState();
-        renderKnockoutRounds();
-
-        // Scroll to see the latest round
-        const knockoutEl = document.getElementById('bracket-knockout');
-        if (knockoutEl) {
-            const lastCard = knockoutEl.lastElementChild;
-            if (lastCard) lastCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        await delay(600);
     }
 }
 
