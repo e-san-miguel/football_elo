@@ -555,6 +555,38 @@ a:hover { color: var(--accent-hover); }
     .flag-lg { width: 50px; height: 34px; }
 }
 
+/* ===== World Cup Tabs ===== */
+.wc-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.wc-tab {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 14px 32px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.wc-tab:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+.wc-tab.active {
+    background: var(--accent-muted);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 /* ===== World Cup CTA Button ===== */
 .wc-cta-btn {
     display: inline-block;

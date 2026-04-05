@@ -1,5 +1,5 @@
 /**
- * 2026 World Cup predictions view.
+ * 2026 World Cup predictions view — tabbed layout.
  */
 
 import { getTeamFlags } from './data.js';
@@ -9,6 +9,10 @@ import { renderBracketBuilder } from './bracket.js';
 const BASE = document.querySelector('base')?.href
     || window.location.pathname.replace(/\/[^/]*$/, '/');
 
+let cachedWcData = null;
+let cachedFlags = null;
+let currentTab = 'overview';
+
 export async function render(container) {
     container.innerHTML = '<div class="loading">Loading World Cup data...</div>';
 
@@ -16,45 +20,70 @@ export async function render(container) {
         fetch(`${BASE}data/men/worldcup2026.json`).then(r => r.json()),
         getTeamFlags(),
     ]);
+    cachedWcData = wcData;
+    cachedFlags = flags;
 
     container.innerHTML = '';
 
     // Header
     const hero = el('div', { class: 'hero' }, [
         el('h1', { text: '2026 World Cup Predictions' }),
-        el('p', { class: 'hero-subtitle', text: 'Group stage probabilities based on current Elo ratings \u00b7 50,000 simulations' }),
+        el('p', { class: 'hero-subtitle', text: 'Based on current Elo ratings \u00b7 10,000 simulations' }),
     ]);
     container.appendChild(hero);
 
-    // All 48 teams ranked
-    container.appendChild(buildRankingsCard(wcData, flags));
-
-    // Groups section title
-    container.appendChild(el('h2', {
-        style: 'font-family:var(--font-display);font-weight:700;font-size:1.5rem;text-transform:uppercase;margin:32px 0 16px;color:var(--text-secondary)',
-        text: 'Group Stage',
-    }));
-    container.appendChild(el('p', {
-        style: 'color:var(--text-tertiary);margin-bottom:24px;font-size:0.9rem',
-        text: 'Click a group to see detailed predictions and match-by-match probabilities.',
-    }));
-
-    // Groups grid — compact cards
-    const grid = el('div', { class: 'wc-grid' });
-    for (const groupName of Object.keys(wcData.groups).sort()) {
-        grid.appendChild(buildGroupCard(groupName, wcData.groups[groupName], flags));
+    // Tab bar
+    const tabs = el('div', { class: 'wc-tabs' });
+    for (const [id, label] of [['overview', 'Overview'], ['groups', 'Groups'], ['bracket', 'Build Your Bracket']]) {
+        tabs.appendChild(el('button', {
+            class: `wc-tab ${id === currentTab ? 'active' : ''}`,
+            text: label,
+            'data-tab': id,
+            onclick: () => switchTab(id, container),
+        }));
     }
-    container.appendChild(grid);
+    container.appendChild(tabs);
 
-    // Bracket builder
-    renderBracketBuilder(container, wcData, flags);
+    // Tab content container
+    container.appendChild(el('div', { id: 'wc-tab-content' }));
+
+    renderTabContent(currentTab);
+}
+
+function switchTab(tab, container) {
+    currentTab = tab;
+    document.querySelectorAll('.wc-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    renderTabContent(tab);
+}
+
+function renderTabContent(tab) {
+    const content = document.getElementById('wc-tab-content');
+    if (!content) return;
+    content.innerHTML = '';
+
+    if (tab === 'overview') {
+        content.appendChild(buildRankingsCard(cachedWcData, cachedFlags));
+    } else if (tab === 'groups') {
+        content.appendChild(el('p', {
+            style: 'color:var(--text-tertiary);margin-bottom:20px;font-size:0.9rem',
+            text: 'Click a group to see detailed predictions and match-by-match probabilities.',
+        }));
+        const grid = el('div', { class: 'wc-grid' });
+        for (const groupName of Object.keys(cachedWcData.groups).sort()) {
+            grid.appendChild(buildGroupCard(groupName, cachedWcData.groups[groupName], cachedFlags));
+        }
+        content.appendChild(grid);
+    } else if (tab === 'bracket') {
+        renderBracketBuilder(content, cachedWcData, cachedFlags);
+    }
 }
 
 function buildRankingsCard(wcData, flags) {
     const card = el('div', { class: 'card' });
     card.appendChild(el('h2', { text: 'World Cup Team Rankings' }));
 
-    // Collect all teams with their group
     const allTeams = [];
     for (const [gName, group] of Object.entries(wcData.groups)) {
         for (const t of group.teams) {
@@ -117,30 +146,22 @@ function buildRankingsCard(wcData, flags) {
 function buildGroupCard(groupName, group, flags) {
     const card = el('div', { class: 'wc-group-card', id: `group-${groupName}` });
 
-    // Header (always visible)
     const header = el('div', {
         class: 'wc-group-header',
         style: 'cursor:pointer',
         onclick: () => toggleGroup(groupName),
     });
     header.appendChild(el('span', { text: `Group ${groupName}` }));
-
-    // Compact team summary in header
     const summary = el('span', { class: 'wc-group-summary' });
     for (const t of group.teams) {
         const flag = flagImg(flags[t.slug], t.team, 'sm');
-        if (flag) {
-            flag.title = t.team;
-            summary.appendChild(flag);
-        }
+        if (flag) { flag.title = t.team; summary.appendChild(flag); }
     }
     header.appendChild(summary);
     card.appendChild(header);
 
-    // Expandable detail section
     const detail = el('div', { class: 'wc-group-detail', id: `detail-${groupName}`, style: 'display:none' });
 
-    // Team probabilities table
     const table = el('table', { class: 'wc-group-table' });
     const thead = el('thead');
     const headerRow = el('tr');
@@ -156,12 +177,10 @@ function buildGroupCard(groupName, group, flags) {
             style: 'cursor:pointer',
             onclick: (e) => { e.stopPropagation(); window.location.hash = `#/team/${t.slug}`; },
         });
-
         const flagTd = el('td', { class: 'wc-flag-cell' });
         const flag = flagImg(flags[t.slug], t.team, 'sm');
         if (flag) flagTd.appendChild(flag);
         tr.appendChild(flagTd);
-
         tr.appendChild(el('td', { class: 'wc-team-name', text: t.team }));
         tr.appendChild(el('td', { class: 'wc-rating', text: Math.round(t.rating).toString() }));
         tr.appendChild(probCell(t.p_1st));
@@ -171,26 +190,21 @@ function buildGroupCard(groupName, group, flags) {
         tr.appendChild(pctCell(t.p_r32 ?? 0));
         tr.appendChild(pctCell(t.p_r16 ?? 0));
         tr.appendChild(pctCell(t.p_qf ?? 0));
-
         tbody.appendChild(tr);
     }
     table.appendChild(tbody);
     detail.appendChild(table);
 
-    // Match predictions
     detail.appendChild(el('div', { class: 'wc-matches-title', text: 'Match Predictions', style: 'margin-top:16px' }));
 
     for (const m of group.matches) {
-        // Date and venue header
         if (m.date) {
             detail.appendChild(el('div', {
                 class: 'wc-match-date',
                 text: `${m.date}${m.venue ? ' \u2014 ' + m.venue : ''}`,
             }));
         }
-
         const matchRow = el('div', { class: 'wc-match-row' });
-
         const homeDiv = el('div', { class: 'wc-match-team wc-match-home' });
         const homeFlag = flagImg(flags[slugify(m.home)], m.home, 'sm');
         if (homeFlag) homeDiv.appendChild(homeFlag);
@@ -199,33 +213,12 @@ function buildGroupCard(groupName, group, flags) {
         matchRow.appendChild(homeDiv);
 
         const barContainer = el('div', { class: 'wc-prob-bar' });
-        if (m.p_home >= 8) barContainer.appendChild(el('div', {
-            class: 'wc-prob-segment wc-prob-home',
-            style: `width:${m.p_home}%`,
-            text: `${m.p_home}%`,
-        }));
-        else barContainer.appendChild(el('div', {
-            class: 'wc-prob-segment wc-prob-home',
-            style: `width:${m.p_home}%`,
-        }));
-        if (m.p_draw >= 8) barContainer.appendChild(el('div', {
-            class: 'wc-prob-segment wc-prob-draw',
-            style: `width:${m.p_draw}%`,
-            text: `${m.p_draw}%`,
-        }));
-        else barContainer.appendChild(el('div', {
-            class: 'wc-prob-segment wc-prob-draw',
-            style: `width:${m.p_draw}%`,
-        }));
-        if (m.p_away >= 8) barContainer.appendChild(el('div', {
-            class: 'wc-prob-segment wc-prob-away',
-            style: `width:${m.p_away}%`,
-            text: `${m.p_away}%`,
-        }));
-        else barContainer.appendChild(el('div', {
-            class: 'wc-prob-segment wc-prob-away',
-            style: `width:${m.p_away}%`,
-        }));
+        if (m.p_home >= 8) barContainer.appendChild(el('div', { class: 'wc-prob-segment wc-prob-home', style: `width:${m.p_home}%`, text: `${m.p_home}%` }));
+        else barContainer.appendChild(el('div', { class: 'wc-prob-segment wc-prob-home', style: `width:${m.p_home}%` }));
+        if (m.p_draw >= 8) barContainer.appendChild(el('div', { class: 'wc-prob-segment wc-prob-draw', style: `width:${m.p_draw}%`, text: `${m.p_draw}%` }));
+        else barContainer.appendChild(el('div', { class: 'wc-prob-segment wc-prob-draw', style: `width:${m.p_draw}%` }));
+        if (m.p_away >= 8) barContainer.appendChild(el('div', { class: 'wc-prob-segment wc-prob-away', style: `width:${m.p_away}%`, text: `${m.p_away}%` }));
+        else barContainer.appendChild(el('div', { class: 'wc-prob-segment wc-prob-away', style: `width:${m.p_away}%` }));
         matchRow.appendChild(barContainer);
 
         const awayDiv = el('div', { class: 'wc-match-team wc-match-away' });
@@ -245,7 +238,6 @@ function toggleGroup(groupName) {
     const detail = document.getElementById(`detail-${groupName}`);
     if (!detail) return;
     const isOpen = detail.style.display !== 'none';
-    // Close all others
     document.querySelectorAll('.wc-group-detail').forEach(d => { d.style.display = 'none'; });
     document.querySelectorAll('.wc-group-card').forEach(c => { c.classList.remove('wc-expanded'); });
     if (!isOpen) {
@@ -265,9 +257,7 @@ function pctCell(pct, highlight = false) {
 }
 
 function probCell(pct, isElim = false) {
-    const intensity = isElim
-        ? Math.min(pct / 50, 1) * 0.3
-        : Math.min(pct / 50, 1) * 0.3;
+    const intensity = Math.min(pct / 50, 1) * 0.3;
     const color = isElim ? `rgba(239, 68, 68, ${intensity})` : `rgba(6, 214, 160, ${intensity})`;
     return el('td', {
         class: 'wc-prob-cell',
