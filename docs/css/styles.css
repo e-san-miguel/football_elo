@@ -1056,9 +1056,9 @@ a:hover { color: var(--accent-hover); }
 /* ===== World Cup Stars ===== */
 .wc-stars {
     color: #f59e0b;
-    font-size: 1.3rem;
-    letter-spacing: 2px;
-    margin-left: 8px;
+    font-size: 1.8rem;
+    letter-spacing: 3px;
+    margin-left: 10px;
 }
 .wc-stars-sm {
     color: #f59e0b;

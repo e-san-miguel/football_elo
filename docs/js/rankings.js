@@ -161,10 +161,6 @@ function buildTable(teams) {
         const flag = flagImg(flags[t.slug], t.team, 'sm');
         if (flag) { teamTd.appendChild(flag); teamTd.appendChild(document.createTextNode(' ')); }
         teamTd.appendChild(document.createTextNode(t.team));
-        if (t.wc_stars) {
-            teamTd.appendChild(document.createTextNode(' '));
-            teamTd.appendChild(el('span', { class: 'wc-stars-sm', text: '\u2605'.repeat(t.wc_stars) }));
-        }
         tr.appendChild(teamTd);
         tr.appendChild(el('td', { class: 'rating-cell text-right', text: formatRating(t.rating) }));
 
