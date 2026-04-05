@@ -193,26 +193,29 @@ def _compute_rank_history(
 
     for date in sorted_dates:
         group = date_groups.get_group(date)
-        # Update running ratings from this date's matches
+
+        # Add first-time teams with their pre-match rating
+        for _, row in group.iterrows():
+            if row["team"] not in running_ratings:
+                running_ratings[row["team"]] = row["rating_before"]
+
+        if date >= pd.Timestamp(start_date):
+            # Compute ranks BEFORE this date's matches (pre-match ranking)
+            fifa_ratings = [
+                (team, rating) for team, rating in running_ratings.items()
+                if slugify(team) not in NON_FIFA_SLUGS
+            ]
+            sorted_teams = sorted(fifa_ratings, key=lambda x: x[1], reverse=True)
+            for rank_idx, (team, _rating) in enumerate(sorted_teams, 1):
+                if team in group["team"].values:
+                    rank_history[team].append({
+                        "date": str(date.date()),
+                        "rk": rank_idx,
+                    })
+
+        # THEN update running ratings with post-match results
         for _, row in group.iterrows():
             running_ratings[row["team"]] = row["rating_after"]
-
-        if date < pd.Timestamp(start_date):
-            continue
-
-        # Compute ranks at this date (FIFA members only)
-        fifa_ratings = [
-            (team, rating) for team, rating in running_ratings.items()
-            if slugify(team) not in NON_FIFA_SLUGS
-        ]
-        sorted_teams = sorted(fifa_ratings, key=lambda x: x[1], reverse=True)
-        for rank_idx, (team, _rating) in enumerate(sorted_teams, 1):
-            # Only record if this team played on this date
-            if team in group["team"].values:
-                rank_history[team].append({
-                    "date": str(date.date()),
-                    "rk": rank_idx,
-                })
 
     return rank_history
 
