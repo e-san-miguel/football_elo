@@ -41,13 +41,28 @@ export async function render(container, slug) {
     // Back link
     container.appendChild(el('a', { class: 'back-link', href: '#/', html: '&larr; Back to Rankings' }));
 
-    // Header with flag
+    // Header with flag + stars
     const header = el('div', { class: 'team-header' });
     const flag = flagImg(flagCode, teamInfo.team, 'lg');
     if (flag) header.appendChild(flag);
     header.appendChild(el('h1', { text: teamInfo.team }));
+    if (teamData.wc_stars > 0) {
+        header.appendChild(el('span', {
+            class: 'wc-stars',
+            text: '\u2605'.repeat(teamData.wc_stars),
+            title: `World Cup wins: ${teamData.wc_wins?.join(', ')}`,
+        }));
+    }
     header.appendChild(el('span', { class: 'team-rank-badge', text: `#${teamInfo.rank}` }));
     container.appendChild(header);
+
+    // World Cup wins subtitle
+    if (teamData.wc_wins?.length > 0) {
+        container.appendChild(el('div', {
+            class: 'wc-wins-subtitle',
+            text: `World Cup champion: ${teamData.wc_wins.join(', ')}`,
+        }));
+    }
 
     // Big rating
     const lastChange = history.length > 0 ? history[history.length - 1].rc : 0;
@@ -81,6 +96,10 @@ export async function render(container, slug) {
         ),
         statCard(history.length.toString(), 'Matches'),
         statCard(`${wins}W ${draws}D ${losses}L`, 'Record'),
+        ...(teamData.wc_record ? [statCard(
+            `${teamData.wc_record.w}W ${teamData.wc_record.d}D ${teamData.wc_record.l}L`,
+            'World Cup Record'
+        )] : []),
     ]);
     container.appendChild(statsRow);
 

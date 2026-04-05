@@ -13,6 +13,26 @@ from .output import TEAM_COLORS
 from .pipeline import EloSystem
 from .worldcup import export_worldcup_json
 
+# World Cup winners (hardcoded historical data)
+MEN_WC_WINNERS = {
+    "Brazil": [1958, 1962, 1970, 1994, 2002],
+    "Germany": [1954, 1974, 1990, 2014],
+    "Italy": [1934, 1938, 1982, 2006],
+    "Argentina": [1978, 1986, 2022],
+    "France": [1998, 2018],
+    "Uruguay": [1930, 1950],
+    "England": [1966],
+    "Spain": [2010],
+}
+
+WOMEN_WC_WINNERS = {
+    "United States": [1991, 1999, 2015, 2019],
+    "Germany": [2003, 2007],
+    "Norway": [1995],
+    "Japan": [2011],
+    "Spain": [2023],
+}
+
 DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs" / "data"
 
 WOMEN_TOURNAMENTS = [
@@ -290,7 +310,8 @@ INACTIVE_CUTOFF = "2016-01-01"
 
 
 def export_rankings_json(
-    elo: EloSystem, rank_history: dict[str, list[dict]], output_dir: Path
+    elo: EloSystem, rank_history: dict[str, list[dict]], output_dir: Path,
+    gender: str = "women",
 ) -> None:
     """Export current rankings as JSON.
 
@@ -346,6 +367,11 @@ def export_rankings_json(
         if worst_rank is not None:
             entry["worst_rank"] = worst_rank
 
+        wc_winners = MEN_WC_WINNERS if gender == "men" else WOMEN_WC_WINNERS
+        wc_wins = wc_winners.get(team, [])
+        if wc_wins:
+            entry["wc_stars"] = len(wc_wins)
+
         teams.append(entry)
 
     last_updated = str(history_df["date"].max().date()) if len(history_df) > 0 else ""
@@ -365,7 +391,8 @@ def export_team_colors_json(output_dir: Path) -> None:
 
 
 def export_team_histories(
-    elo: EloSystem, rank_history: dict[str, list[dict]], output_dir: Path
+    elo: EloSystem, rank_history: dict[str, list[dict]], output_dir: Path,
+    gender: str = "women",
 ) -> None:
     """Export per-team history JSON files with smoothed ratings and rank."""
     history_dir = output_dir / "history"
@@ -424,9 +451,23 @@ def export_team_histories(
         worst_losses = sorted_by_rc[:5]
         top_wins = sorted_by_rc[-5:][::-1]
 
+        # World Cup data
+        wc_winners = MEN_WC_WINNERS if gender == "men" else WOMEN_WC_WINNERS
+        wc_wins = wc_winners.get(team, [])
+        wc_stars = len(wc_wins)
+
+        # World Cup overall record (from match history)
+        wc_matches = [r for r in records if r["tournament"] == "FIFA World Cup"]
+        wc_w = sum(1 for r in wc_matches if r["ts"] > r["os"])
+        wc_d = sum(1 for r in wc_matches if r["ts"] == r["os"])
+        wc_l = sum(1 for r in wc_matches if r["ts"] < r["os"])
+
         data = {
             "team": team,
             "slug": slug,
+            "wc_stars": wc_stars,
+            "wc_wins": wc_wins,
+            "wc_record": {"w": wc_w, "d": wc_d, "l": wc_l} if wc_matches else None,
             "best_rank": best_rank,
             "best_rank_first": best_rank_first,
             "best_rank_last": best_rank_last,
@@ -497,7 +538,7 @@ def export_all(
     print("    Computing rank history...")
     rank_history = _compute_rank_history(elo, start_date)
 
-    export_rankings_json(elo, rank_history, output_dir)
+    export_rankings_json(elo, rank_history, output_dir, gender)
     print("    rankings.json")
 
     # Shared files go to base_dir (only write once)
@@ -507,7 +548,7 @@ def export_all(
         export_team_flags_json(base_dir)
         print("    team_flags.json (shared)")
 
-    export_team_histories(elo, rank_history, output_dir)
+    export_team_histories(elo, rank_history, output_dir, gender)
     print(f"    history/ ({len(elo.ratings)} team files)")
 
     export_history_top_n(elo, 20, output_dir)

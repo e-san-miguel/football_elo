@@ -1053,6 +1053,25 @@ a:hover { color: var(--accent-hover); }
     border: 2px solid var(--bg-primary);
 }
 
+/* ===== World Cup Stars ===== */
+.wc-stars {
+    color: #f59e0b;
+    font-size: 1.3rem;
+    letter-spacing: 2px;
+    margin-left: 8px;
+}
+.wc-stars-sm {
+    color: #f59e0b;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+}
+.wc-wins-subtitle {
+    font-size: 0.85rem;
+    color: var(--accent-secondary);
+    margin-bottom: 16px;
+    font-style: italic;
+}
+
 /* ===== Flags ===== */
 .flag-sm {
     width: 24px;
