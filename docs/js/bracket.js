@@ -414,78 +414,161 @@ function renderKnockoutRounds() {
 
     if (!allGroupsComplete()) return;
 
-    for (const round of ROUND_ORDER) {
-        const matchups = getKnockoutMatchups(round);
-        if (matchups.length === 0) break;
-
+    // R32 as sequential card
+    const r32Matchups = getKnockoutMatchups('r32');
+    if (r32Matchups.length > 0) {
         const card = el('div', { class: 'card' });
-        card.appendChild(el('h2', { text: ROUND_NAMES[round] }));
-
+        card.appendChild(el('h2', { text: 'Round of 32' }));
         const grid = el('div', { class: 'bracket-matchups-grid' });
-        const picks = state.knockoutPicks[round] || [];
+        const picks = state.knockoutPicks.r32 || [];
 
-        matchups.forEach((m, i) => {
+        r32Matchups.forEach((m, i) => {
             const matchup = el('div', { class: 'bracket-matchup' });
             const picked = picks[i];
-
-            const btnA = teamButton(m.teamA, picked === m.teamA, picked === m.teamB, () => {
-                if (!state.knockoutPicks[round]) state.knockoutPicks[round] = [];
-                const prev = state.knockoutPicks[round][i];
-                state.knockoutPicks[round][i] = m.teamA;
-                if (prev && prev !== m.teamA) clearDownstream(round, i);
-                saveState();
-                renderKnockoutRounds();
-            });
-
-            const btnB = teamButton(m.teamB, picked === m.teamB, picked === m.teamA, () => {
-                if (!state.knockoutPicks[round]) state.knockoutPicks[round] = [];
-                const prev = state.knockoutPicks[round][i];
-                state.knockoutPicks[round][i] = m.teamB;
-                if (prev && prev !== m.teamB) clearDownstream(round, i);
-                saveState();
-                renderKnockoutRounds();
-            });
-
-            matchup.appendChild(btnA);
+            matchup.appendChild(teamButton(m.teamA, picked === m.teamA, picked === m.teamB, () => pickWinner('r32', i, m.teamA)));
             matchup.appendChild(el('span', { class: 'bracket-vs', text: 'vs' }));
-            matchup.appendChild(btnB);
+            matchup.appendChild(teamButton(m.teamB, picked === m.teamB, picked === m.teamA, () => pickWinner('r32', i, m.teamB)));
             grid.appendChild(matchup);
         });
 
         card.appendChild(grid);
         container.appendChild(card);
 
-        if (!isRoundComplete(round)) break;
+        if (!isRoundComplete('r32')) {
+            container.appendChild(resetButton());
+            return;
+        }
+    }
+
+    // R16 onward as visual bracket
+    container.appendChild(renderVisualBracket());
+    container.appendChild(resetButton());
+}
+
+function pickWinner(round, index, team) {
+    if (!state.knockoutPicks[round]) state.knockoutPicks[round] = [];
+    const prev = state.knockoutPicks[round][index];
+    state.knockoutPicks[round][index] = team;
+    if (prev && prev !== team) clearDownstream(round, index);
+    saveState();
+    renderKnockoutRounds();
+}
+
+function renderVisualBracket() {
+    const bracket = el('div', { class: 'visual-bracket' });
+
+    // Split into left half (R16 matches 0-3) and right half (R16 matches 4-7)
+    const r16 = getKnockoutMatchups('r16');
+    const r16Picks = state.knockoutPicks.r16 || [];
+    const qf = getKnockoutMatchups('qf');
+    const qfPicks = state.knockoutPicks.qf || [];
+    const sf = getKnockoutMatchups('sf');
+    const sfPicks = state.knockoutPicks.sf || [];
+    const fin = getKnockoutMatchups('final');
+    const finPicks = state.knockoutPicks.final || [];
+
+    // Left half: R16[0-3] → QF[0-1] → SF[0]
+    const leftR16 = renderBracketColumn('r16', r16.slice(0, 4), r16Picks, 0, 'R16');
+    const leftQF = renderBracketColumn('qf', qf.slice(0, 2), qfPicks, 0, 'QF');
+    const leftSF = renderBracketColumn('sf', sf.slice(0, 1), sfPicks, 0, 'SF');
+
+    // Right half: R16[4-7] → QF[2-3] → SF[1]
+    const rightR16 = renderBracketColumn('r16', r16.slice(4, 8), r16Picks, 4, 'R16');
+    const rightQF = renderBracketColumn('qf', qf.slice(2, 4), qfPicks, 2, 'QF');
+    const rightSF = renderBracketColumn('sf', sf.slice(1, 2), sfPicks, 1, 'SF');
+
+    // Final
+    const finalCol = el('div', { class: 'vb-column vb-final-col' });
+    finalCol.appendChild(el('div', { class: 'vb-round-label', text: 'Final' }));
+    if (fin.length > 0) {
+        finalCol.appendChild(renderBracketMatchup('final', fin[0], finPicks, 0));
+    } else {
+        finalCol.appendChild(el('div', { class: 'vb-placeholder', text: 'TBD vs TBD' }));
     }
 
     // Champion
-    const finalPicks = state.knockoutPicks.final || [];
-    if (finalPicks[0]) {
-        const champ = el('div', { class: 'bracket-champion' });
-        const f = flagImg(flags[slugify(finalPicks[0])], finalPicks[0], 'lg');
+    if (finPicks[0]) {
+        const champ = el('div', { class: 'bracket-champion', style: 'margin-top:16px;padding:20px' });
+        const f = flagImg(flags[slugify(finPicks[0])], finPicks[0], 'lg');
         if (f) champ.appendChild(f);
-        champ.appendChild(el('div', { class: 'bracket-champion-name', text: finalPicks[0] }));
-        champ.appendChild(el('div', { style: 'font-family:var(--font-display);font-size:1.3rem;color:var(--accent-secondary);margin-top:8px', text: 'World Cup Champion' }));
-        container.appendChild(champ);
+        champ.appendChild(el('div', { class: 'bracket-champion-name', style: 'font-size:1.8rem', text: finPicks[0] }));
+        champ.appendChild(el('div', { style: 'font-family:var(--font-display);font-size:1rem;color:var(--accent-secondary);margin-top:4px', text: 'Champion' }));
+        finalCol.appendChild(champ);
     }
 
-    // Reset button
-    const resetBtn = el('button', {
-        class: 'toggle-btn',
-        text: 'Reset Bracket',
-        style: 'margin-top:20px',
-        onclick: () => {
-            state = { scores: {}, knockoutPicks: { r32: [], r16: [], qf: [], sf: [], final: [] } };
-            localStorage.removeItem(STORAGE_KEY);
-            // Re-render entire bracket builder
-            const builder = document.querySelector('.bracket-builder');
-            if (builder) {
-                builder.remove();
-                renderBracketBuilder(containerRef, null, flags);
-            }
-        },
+    // Assemble: Left | Center | Right
+    bracket.appendChild(leftR16);
+    bracket.appendChild(leftQF);
+    bracket.appendChild(leftSF);
+    bracket.appendChild(finalCol);
+    bracket.appendChild(rightSF);
+    bracket.appendChild(rightQF);
+    bracket.appendChild(rightR16);
+
+    return bracket;
+}
+
+function renderBracketColumn(round, matchups, allPicks, startIdx, label) {
+    const col = el('div', { class: `vb-column vb-col-${label.toLowerCase()}` });
+    col.appendChild(el('div', { class: 'vb-round-label', text: label }));
+
+    const matchContainer = el('div', { class: 'vb-matches' });
+    matchups.forEach((m, i) => {
+        const idx = startIdx + i;
+        if (m) {
+            matchContainer.appendChild(renderBracketMatchup(round, m, allPicks, idx));
+        } else {
+            matchContainer.appendChild(el('div', { class: 'vb-matchup vb-placeholder' }, [
+                el('div', { class: 'vb-team-slot', text: 'TBD' }),
+                el('div', { class: 'vb-team-slot', text: 'TBD' }),
+            ]));
+        }
     });
-    container.appendChild(resetBtn);
+    col.appendChild(matchContainer);
+    return col;
+}
+
+function renderBracketMatchup(round, m, allPicks, idx) {
+    const picked = allPicks[idx];
+    const matchup = el('div', { class: 'vb-matchup' });
+
+    const btnA = el('div', {
+        class: `vb-team-slot${picked === m.teamA ? ' vb-winner' : ''}${picked === m.teamB ? ' vb-loser' : ''}`,
+        onclick: () => pickWinner(round, idx, m.teamA),
+    });
+    const fA = flagImg(flags[slugify(m.teamA)], m.teamA, 'sm');
+    if (fA) btnA.appendChild(fA);
+    btnA.appendChild(document.createTextNode(` ${m.teamA}`));
+
+    const btnB = el('div', {
+        class: `vb-team-slot${picked === m.teamB ? ' vb-winner' : ''}${picked === m.teamA ? ' vb-loser' : ''}`,
+        onclick: () => pickWinner(round, idx, m.teamB),
+    });
+    const fB = flagImg(flags[slugify(m.teamB)], m.teamB, 'sm');
+    if (fB) btnB.appendChild(fB);
+    btnB.appendChild(document.createTextNode(` ${m.teamB}`));
+
+    matchup.appendChild(btnA);
+    matchup.appendChild(btnB);
+    return matchup;
+}
+
+function resetButton() {
+    return el('div', { style: 'text-align:center;margin-top:24px' }, [
+        el('button', {
+            class: 'toggle-btn',
+            text: 'Reset Bracket',
+            onclick: () => {
+                state = { scores: {}, knockoutPicks: { r32: [], r16: [], qf: [], sf: [], final: [] } };
+                localStorage.removeItem(STORAGE_KEY);
+                const builder = document.querySelector('.bracket-builder');
+                if (builder) {
+                    builder.remove();
+                    renderBracketBuilder(containerRef, null, flags);
+                }
+            },
+        }),
+    ]);
 }
 
 function teamButton(team, isSelected, isEliminated, onClick) {
