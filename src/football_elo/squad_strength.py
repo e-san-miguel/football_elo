@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -9,14 +10,33 @@ import pandas as pd
 from .player_strength import adjusted_value
 
 
+def _player_score(v: float, a: float,
+                  tm_curve: dict[int, float] | None,
+                  use_log: bool) -> float:
+    """Age-adjusted TM value, optionally log-transformed.
+
+    log1p(value_in_millions) applies a concave transform so that the gap
+    between an amateur (~€0) and a pro (€5-10M) is larger than between a pro
+    and a superstar (€100M). Captures diminishing marginal returns on
+    player quality.
+    """
+    adj = adjusted_value(v, a, tm_curve)
+    if math.isnan(adj):
+        return float('nan')
+    if use_log:
+        return math.log1p(max(0.0, adj) / 1e6)  # log(1 + millions)
+    return adj
+
+
 def squad_score_for_team(team_rows: pd.DataFrame,
                          tm_curve: dict[int, float] | None = None,
-                         agg: str = "mean") -> float:
-    """Age-adjusted TM value aggregated across a team's squad.
+                         agg: str = "mean",
+                         use_log: bool = True) -> float:
+    """Per-squad aggregate of age-adjusted player values.
 
-    agg='mean' averages across players with valid TM data — robust to missing
-    players and to squad-size changes (23 in 2018 → 26 in 2022).
-    agg='sum' sums total squad value (sensitive to squad size + missing data).
+    use_log=True applies log1p to each player's value (in millions) before
+    aggregating — reflects diminishing returns on player worth.
+    agg='mean' averages across matched players; 'sum' totals them.
     """
     vals: list[float] = []
     for _, r in team_rows.iterrows():
@@ -24,7 +44,9 @@ def squad_score_for_team(team_rows: pd.DataFrame,
         a = r.get('age_at_kickoff')
         if pd.isna(v) or pd.isna(a):
             continue
-        vals.append(adjusted_value(float(v), float(a), tm_curve))
+        score = _player_score(float(v), float(a), tm_curve, use_log)
+        if not math.isnan(score):
+            vals.append(score)
     if not vals:
         return 0.0
     if agg == "mean":
@@ -34,10 +56,11 @@ def squad_score_for_team(team_rows: pd.DataFrame,
 
 def squad_scores(squad_df: pd.DataFrame,
                  tm_curve: dict[int, float] | None = None,
-                 agg: str = "mean") -> dict[str, float]:
+                 agg: str = "mean",
+                 use_log: bool = True) -> dict[str, float]:
     """Return {team: score} from a squad DataFrame for a single tournament."""
     return {
-        team: squad_score_for_team(rows, tm_curve, agg=agg)
+        team: squad_score_for_team(rows, tm_curve, agg=agg, use_log=use_log)
         for team, rows in squad_df.groupby('team')
     }
 

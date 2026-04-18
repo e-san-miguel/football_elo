@@ -395,9 +395,16 @@ p(a) = \begin{cases}
 
 \subsection{Squad Score}
 
-A team's squad score is the \emph{mean} age-adjusted value across matched players:
+Raw TM values are highly right-skewed and exhibit diminishing marginal returns at the player level --- a \texteuro 100M player is not ten times better than a \texteuro 10M player, and the gap between an amateur-level (\texteuro 0) and a serious professional (\texteuro 5--10M) is much larger than between a professional and a superstar. We therefore apply a $\log(1+x)$ transform per player before aggregating, with values measured in millions:
 \begin{equation}
-S_T = \frac{1}{|\mathcal{P}_T|} \sum_{p \in \mathcal{P}_T} \text{adj}(v_p, a_p)
+\tilde{s}(v, a) = \log\!\Bigl(1 + \frac{\text{adj}(v, a)}{10^6}\Bigr)
+\label{eq:log_transform}
+\end{equation}
+This compresses the 110$\times$ raw team-mean spread observed in 2018 to roughly 10$\times$ in log space --- a more reasonable reflection of actual talent differences --- and naturally emphasizes the amateur-to-professional threshold over the professional-to-star jump.
+
+A team's squad score is the \emph{mean} of log-transformed player scores across matched players:
+\begin{equation}
+S_T = \frac{1}{|\mathcal{P}_T|} \sum_{p \in \mathcal{P}_T} \tilde{s}(v_p, a_p)
 \label{eq:squad_score}
 \end{equation}
 where $\mathcal{P}_T$ is the set of players in team $T$'s squad with valid TM data. Mean aggregation is robust to variable squad sizes across tournaments (23 in 2018, 26 in 2022) and to variable match rates across nations.
@@ -448,15 +455,15 @@ Uniform baseline & 0.667 & 1.099 \\
 \label{tab:brier_baseline}
 \end{table}
 
-The grid search selects $\beta^\star = 0.1$ with pooled Brier 0.5952, versus 0.5954 for pure Elo --- a 0.15\% relative lift, far below the decision gate. Cross-validated lifts are $+0.14\%$ (train 2022, test 2018) and $+0.19\%$ (train 2018, test 2022).
+The grid search selects $\beta^\star = 0.2$ with pooled Brier 0.5924, versus 0.5954 for pure Elo --- a 0.50\% relative lift in sample, still below the 5\% decision gate. Cross-validated lifts are asymmetric: $+0.63\%$ when training on 2022 and evaluating on 2018, but $-0.20\%$ when training on 2018 and evaluating on 2022 ($\beta = 0.3$ appears overfit to 2018-specific patterns). A more conservative $\beta = 0.1$ fits both tournaments cleanly but gives a smaller in-sample lift.
 
-\paragraph{Diagnosis.} The normalized squad score $z_T$ has Pearson correlation of $0.80$ (2018) and $0.79$ (2022) with normalized Elo. Elo already captures the bulk of squad-quality information --- strong teams accumulate high Elo because they have good rosters. The residual squad signal orthogonal to Elo is small and noisy over the 128-match backtest window.
+\paragraph{Diagnosis.} The log-transformed squad score $z_T$ has Pearson correlation of $0.79$ (2018) and $0.78$ (2022) with normalized Elo --- nearly identical to the correlation without the log transform. Elo already captures the bulk of squad-quality information: strong teams accumulate high Elo because they have good rosters. The log transform improves the functional form but does not reveal new signal; the residual squad information orthogonal to Elo remains small and noisy over the 128-match backtest window.
 
 \paragraph{Statistical power.} With per-match Brier standard deviation $\approx 0.3$ and $n = 128$ matches, the standard error on the mean is $\approx 0.027$. A true 5\% lift ($\approx 0.030$ Brier points) would be detectable at roughly 50\% power; a 2\% lift ($\approx 0.012$ points) requires on the order of 1{,}100 matches. The backtest can rule out large effects but is underpowered for small ones.
 
 \subsection{Illustrative 2026 Output}
 
-Applying the composite rating at $\beta = 0.1$ to current TM squads (players active in the 2023/24 season or later, top 26 by market value per team) yields the tournament-level shifts shown in Table~\ref{tab:composite2026}. France gains the most because its squad is the most talent-dense in the field; Mexico loses ground relative to Portugal, reflecting that Elo was overvaluing Mexico's host-boosted rating.
+Applying the composite rating at the conservative $\beta = 0.1$ setting to current TM squads (players active in the 2023/24 season or later, top 26 by market value per team) yields the tournament-level shifts shown in Table~\ref{tab:composite2026}. Top European squads gain modestly while smaller-squad nations shift down; Mexico loses ground relative to Portugal, reflecting that Elo was overvaluing Mexico's host-boosted rating.
 
 \begin{table}[h]
 \centering
@@ -464,16 +471,16 @@ Applying the composite rating at $\beta = 0.1$ to current TM squads (players act
 \toprule
 Team & Elo & Composite & Pure $P(\text{Win})$ & Composite $P(\text{Win})$ \\
 \midrule
-Spain     & 2218 & 2255 & 32.0\% & 34.4\% \\
-Argentina & 2179 & 2199 & 19.8\% & 18.3\% \\
-France    & 2137 & 2181 & 14.6\% & 18.5\% \\
-England   & 2084 & 2126 & 6.4\%  & 7.9\%  \\
-Brazil    & 2045 & 2077 & 3.5\%  & 4.0\%  \\
-Portugal  & 2035 & 2059 & 2.7\%  & 2.9\%  \\
-Mexico    & 1912 & 1905 & 2.1\%  & 1.1\%  \\
+Spain     & 2218 & 2245 & 32.0\% & 33.3\% \\
+Argentina & 2179 & 2199 & 19.8\% & 20.4\% \\
+France    & 2137 & 2165 & 14.6\% & 16.1\% \\
+England   & 2084 & 2112 & 6.4\%  & 7.1\%  \\
+Brazil    & 2045 & 2070 & 3.5\%  & 3.6\%  \\
+Portugal  & 2035 & 2057 & 2.7\%  & 2.8\%  \\
+Mexico    & 1960 & 1961 & 2.1\%  & 1.4\%  \\
 \bottomrule
 \end{tabular}
-\caption{Illustrative 2026 WC win probabilities: pure Elo vs composite ($\beta = 0.1$). These outputs are not currently used on the live site.}
+\caption{Illustrative 2026 WC win probabilities: pure Elo vs composite ($\beta = 0.1$, log-transformed squad values). These outputs are not currently used on the live site.}
 \label{tab:composite2026}
 \end{table}
 

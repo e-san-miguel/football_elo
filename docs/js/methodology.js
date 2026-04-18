@@ -85,15 +85,18 @@ export async function render(container) {
             <li><strong>Apply performance decay:</strong> multiply by a shallower performance-age factor from the soccer-aging literature (peak &asymp; 27, ~2%/yr decline through age 32, then steeper).</li>
         </ol>
 
+        <h3 style="margin-top:16px">Log Transform (diminishing returns)</h3>
+        <p>Raw TM values are sharply right-skewed &mdash; a &euro;100M player isn't 10&times; better than a &euro;10M player, and the gap from amateur (~&euro;0) to serious professional (&euro;5&ndash;10M) is much larger than from professional to superstar. We apply a <code>log(1 + value_in_millions)</code> transform per player before averaging. This compresses the 110&times; raw team-mean spread observed in 2018 to about 10&times; in log space &mdash; closer to actual talent differences.</p>
+
         <h3 style="margin-top:16px">Composite Rating</h3>
         <div class="formula-block">R<sub>composite</sub> = R<sub>Elo</sub> + &beta; &middot; z<sub>squad</sub> &middot; &sigma;<sub>Elo</sub></div>
-        <p>where <code>z<sub>squad</sub></code> is the team's age-adjusted mean squad value, z-normalized across the 32 tournament teams, and <code>&sigma;<sub>Elo</sub></code> rescales the bump into Elo-equivalent points. The single parameter <code>&beta;</code> is fit via grid search to minimize mean multiclass Brier score across the 2018 and 2022 men's World Cup matches.</p>
+        <p>where <code>z<sub>squad</sub></code> is the team's log-transformed mean squad score, z-normalized across the tournament teams, and <code>&sigma;<sub>Elo</sub></code> rescales the bump into Elo-equivalent points. The single parameter <code>&beta;</code> is fit via grid search to minimize mean multiclass Brier score across the 2018 and 2022 men's World Cup matches.</p>
 
         <h3 style="margin-top:16px">Findings</h3>
         <ul style="color:var(--text-secondary);line-height:2;padding-left:20px">
             <li>Pure-Elo match-level Brier: <strong>0.576</strong> (2018), <strong>0.615</strong> (2022). Both well under the 0.667 uniform-prediction baseline &mdash; Elo has real signal.</li>
-            <li>Best <code>&beta;</code> = <strong>0.1</strong>, improving pooled Brier by only <strong>0.15%</strong>. Cross-validated lift: +0.14% / +0.19%.</li>
-            <li>The squad z-score correlates with Elo at <strong>0.76&ndash;0.80</strong> &mdash; Elo already captures most squad-quality information, so the marginal signal from TM values is small over 128 backtest matches.</li>
+            <li>Best in-sample <code>&beta;</code> = <strong>0.2</strong>, improving pooled Brier by <strong>0.50%</strong> over pure Elo. Cross-validated lift is asymmetric: +0.63% training on 2022, &minus;0.20% training on 2018 &mdash; indicating the larger &beta; overfits to 2018-specific patterns.</li>
+            <li>The squad z-score correlates with Elo at <strong>0.78&ndash;0.79</strong> &mdash; Elo already captures most squad-quality information, so the marginal signal from TM values is small over 128 backtest matches. The log transform improves the functional form but does not reveal new signal.</li>
         </ul>
         <p>A thorough write-up with formulas and derivations is in the <a href="https://github.com/e-san-miguel/football_elo/blob/main/docs/methodology_appendix.tex" target="_blank" rel="noopener">LaTeX methodology appendix</a>.</p>
 
