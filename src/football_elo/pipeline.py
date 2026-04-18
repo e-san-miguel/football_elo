@@ -82,7 +82,12 @@ class EloSystem:
         self.ratings[home] = new_home
         self.ratings[away] = new_away
 
-    def process_all(self, matches: pd.DataFrame) -> None:
+    def process_all(
+        self, matches: pd.DataFrame, through_date: str | None = None
+    ) -> None:
+        if through_date is not None:
+            cutoff = pd.Timestamp(through_date)
+            matches = matches[matches["date"] < cutoff]
         for _, row in matches.iterrows():
             self.process_match(row)
 
