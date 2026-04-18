@@ -102,9 +102,25 @@ function buildRankingsCard(wcData, flags) {
     const table = el('table', { class: 'rankings-table' });
     const thead = el('thead');
     const headerRow = el('tr');
-    for (const h of ['#', 'Team', 'Grp', 'Elo', 'R32', 'R16', 'QF', 'SF', 'Final', 'Win']) {
-        const cls = ['#', 'Team', 'Grp'].includes(h) ? '' : 'text-right';
-        headerRow.appendChild(el('th', { text: h, class: cls }));
+    const headers = [
+        { label: '#' },
+        { label: 'Team' },
+        { label: 'Grp' },
+        { label: 'Elo', tip: 'Base Elo rating' },
+        { label: 'Squad', tip: 'Squad-strength index (50–100, rescaled across the 48 teams)' },
+        { label: 'Total', tip: 'Combined Elo + squad index (50–100)' },
+        { label: 'R32' },
+        { label: 'R16' },
+        { label: 'QF' },
+        { label: 'SF' },
+        { label: 'Final' },
+        { label: 'Win' },
+    ];
+    for (const h of headers) {
+        const cls = ['#', 'Team', 'Grp'].includes(h.label) ? '' : 'text-right';
+        const attrs = { text: h.label, class: cls };
+        if (h.tip) attrs.title = h.tip;
+        headerRow.appendChild(el('th', attrs));
     }
     thead.appendChild(headerRow);
     table.appendChild(thead);
@@ -126,7 +142,12 @@ function buildRankingsCard(wcData, flags) {
         tr.appendChild(teamTd);
 
         tr.appendChild(el('td', { text: t.group, style: 'color:var(--text-tertiary)' }));
-        tr.appendChild(el('td', { class: 'rating-cell text-right', text: Math.round(t.rating).toString() }));
+
+        // Elo (base), Squad index, Combined index
+        const eloBase = t.elo_base ?? t.rating;
+        tr.appendChild(el('td', { class: 'rating-cell text-right', text: Math.round(eloBase).toString() }));
+        tr.appendChild(indexCell(t.squad_index));
+        tr.appendChild(indexCell(t.combined_index, true));
 
         for (const key of ['p_r32', 'p_r16', 'p_qf', 'p_sf', 'p_final', 'p_winner']) {
             const pct = t[key] ?? 0;
@@ -253,6 +274,20 @@ function pctCell(pct, highlight = false) {
         class: 'wc-prob-cell text-right',
         text: pct > 0 ? `${pct}%` : '-',
         style: pct > 0 ? `background:${bg}${highlight ? ';font-weight:700;color:var(--accent)' : ''}` : 'color:var(--text-tertiary)',
+    });
+}
+
+function indexCell(value, highlight = false) {
+    if (value == null) {
+        return el('td', { class: 'wc-prob-cell text-right', text: '-', style: 'color:var(--text-tertiary)' });
+    }
+    // Rescale 50-100 -> 0-1 for color intensity
+    const intensity = Math.max(0, Math.min(1, (value - 50) / 50));
+    const bg = `rgba(93, 143, 255, ${intensity * 0.28})`;
+    return el('td', {
+        class: 'wc-prob-cell text-right',
+        text: value.toFixed(1),
+        style: `background:${bg}${highlight ? ';font-weight:700' : ''}`,
     });
 }
 

@@ -518,21 +518,43 @@ SQUAD_BETA = 0.25
 RATING_SIGMA = 120.0
 
 
-def _compose_ratings(base_ratings: dict[str, float], beta: float) -> dict[str, float]:
-    """Blend base Elo with log-transformed age-adjusted squad z-score."""
+def _compose_ratings(
+    base_ratings: dict[str, float], beta: float,
+) -> tuple[dict[str, float], dict[str, float]]:
+    """Blend base Elo with log-transformed age-adjusted squad z-score.
+
+    Returns (composite_ratings, squad_z_scores). squad_z is empty dict if
+    squad data is unavailable.
+    """
     if beta <= 0:
-        return dict(base_ratings)
+        return dict(base_ratings), {}
     try:
         from .squad_strength import load_tournament_squads, squad_scores, z_scores
         squads = load_tournament_squads(2026)
     except FileNotFoundError:
-        return dict(base_ratings)
+        return dict(base_ratings), {}
     scores = squad_scores(squads, use_log=True)
     z = z_scores(scores)
     vals = list(base_ratings.values())
     mu = sum(vals) / len(vals)
     sigma_elo = (sum((v - mu) ** 2 for v in vals) / len(vals)) ** 0.5
-    return {t: base_ratings[t] + beta * z.get(t, 0.0) * sigma_elo for t in base_ratings}
+    composite = {t: base_ratings[t] + beta * z.get(t, 0.0) * sigma_elo for t in base_ratings}
+    return composite, z
+
+
+def _to_index(values_by_team: dict[str, float]) -> dict[str, float]:
+    """Linearly rescale a dict of floats to the 50–100 range.
+
+    Min value maps to 50, max to 100. Purely a display transform; the
+    underlying math (composite rating, squad z) is unchanged.
+    """
+    if not values_by_team:
+        return {}
+    vs = list(values_by_team.values())
+    lo, hi = min(vs), max(vs)
+    if hi - lo < 1e-9:
+        return {t: 75.0 for t in values_by_team}
+    return {t: 50.0 + 50.0 * (v - lo) / (hi - lo) for t, v in values_by_team.items()}
 
 
 def _marginal_match_probs(
@@ -567,7 +589,11 @@ def export_worldcup_json(elo: EloSystem, output_dir: Path) -> None:
             base_ratings[t] = elo.get_rating(t)
 
     # Composite ratings: base Elo + squad tilt
-    all_ratings = _compose_ratings(base_ratings, SQUAD_BETA)
+    all_ratings, squad_z = _compose_ratings(base_ratings, SQUAD_BETA)
+
+    # Display-only indices rescaled to 50–100 across the 48 tournament teams
+    squad_index = _to_index(squad_z) if squad_z else {}
+    combined_index = _to_index(all_ratings)
 
     # Tournament simulation with rating uncertainty
     sim_results = simulate_tournament(
@@ -624,6 +650,9 @@ def export_worldcup_json(elo: EloSystem, output_dir: Path) -> None:
                 "team": t,
                 "slug": slugify(t),
                 "rating": round(all_ratings[t], 0),
+                "elo_base": round(base_ratings[t], 0),
+                "squad_index": round(squad_index.get(t, 75.0), 1) if squad_index else None,
+                "combined_index": round(combined_index.get(t, 75.0), 1),
                 **sim_results[t],
             })
         team_list.sort(key=lambda x: x["p_1st"], reverse=True)
