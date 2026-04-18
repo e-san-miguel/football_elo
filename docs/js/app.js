@@ -7,6 +7,7 @@ import { render as renderTeam } from './team.js';
 import { render as renderCompare } from './compare.js';
 import { render as renderHistory } from './history.js';
 import { render as renderWorldCup } from './worldcup.js';
+import { render as renderPredict } from './predict.js';
 import { render as renderMethodology } from './methodology.js';
 
 const app = document.getElementById('app');
@@ -18,6 +19,7 @@ const routes = [
     { pattern: /^#\/compare$/, handler: () => renderCompare(app) },
     { pattern: /^#\/history$/, handler: () => renderHistory(app) },
     { pattern: /^#\/worldcup$/, handler: () => renderWorldCup(app) },
+    { pattern: /^#\/predict$/, handler: () => renderPredict(app) },
     { pattern: /^#\/methodology$/, handler: () => renderMethodology(app) },
     { pattern: /^#\/$/, handler: () => renderRankings(app) },
 ];
@@ -31,6 +33,7 @@ function updateActiveNav() {
         else if (route === 'compare') isActive = hash.startsWith('#/compare');
         else if (route === 'history') isActive = hash.startsWith('#/history');
         else if (route === 'worldcup') isActive = hash === '#/worldcup';
+        else if (route === 'predict') isActive = hash === '#/predict';
         else if (route === 'methodology') isActive = hash === '#/methodology';
         link.classList.toggle('active', isActive);
     });
