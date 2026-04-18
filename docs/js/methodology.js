@@ -71,41 +71,28 @@ export async function render(container) {
         </ol>
         <p>The probabilities shown (R32, R16, QF, SF, Final, Winner) represent the fraction of simulations in which each team reached that stage.</p>
 
-        <h2>Composite Rating: Squad Strength + Rating Uncertainty</h2>
-        <p style="background:var(--bg-tertiary);padding:12px 14px;border-radius:8px;border-left:3px solid var(--accent);font-size:0.92rem">
-            <strong>Deployed on the live site</strong> for the 2026 men's World Cup predictions. Parameters <code>&beta; = 0.25</code> and <code>&sigma; = 120</code> were calibrated on 2018 + 2022 men's WCs. Pre-deployment top-3 combined share was 66%; now 56%, matching published consensus models.
-        </p>
+        <h2>Composite Rating for World Cup Predictions</h2>
+        <p>World Cup predictions augment base Elo with two additional terms. A squad-strength adjustment derived from Transfermarkt market values compensates for the lag in international Elo, since national teams play only 8&ndash;12 matches per year. Gaussian rating uncertainty is then added in the tournament Monte Carlo to account for imprecision in each team's estimated rating.</p>
 
-        <p>National teams play 8&ndash;12 matches per year, so Elo can lag meaningful roster changes. We also observed that treating Elo as the team's <em>true</em> strength &mdash; with zero uncertainty &mdash; over-concentrates probability on the top favorite: a team rated ~200 Elo points above its rivals wins each of 6 matches at ~85%, so the compounded championship probability is ~40%, far above what top-favorite teams historically achieve. Two adjustments fix these issues.</p>
-
-        <h3 style="margin-top:16px">1. Squad Strength (Transfermarkt)</h3>
-        <p>We joined World Cup rosters from <a href="https://github.com/jfjelstul/worldcup" target="_blank" rel="noopener">jfjelstul/worldcup</a> with historical Transfermarkt market values from <a href="https://github.com/dcaribou/transfermarkt-datasets" target="_blank" rel="noopener">dcaribou/transfermarkt-datasets</a> to build an age-adjusted squad score per team.</p>
-
-        <h4 style="margin-top:12px">Age Adjustment (two-step)</h4>
-        <p>Transfermarkt discounts aging players more aggressively than on-field performance actually declines:</p>
+        <h3>Squad Score</h3>
+        <p>For each team's World Cup squad, player market values are transformed in three steps before aggregation:</p>
         <ol style="color:var(--text-secondary);line-height:2;padding-left:20px">
-            <li><strong>Recover peak-equivalent talent:</strong> divide current TM value by the empirical age-discount curve &mdash; a 32-year-old at &euro;60M with peak &euro;100M recovers to &asymp;&euro;94M.</li>
-            <li><strong>Apply performance decay:</strong> multiply by a shallower performance-age factor from the soccer-aging literature (peak &asymp; 27, ~2%/yr decline through age 32, then steeper).</li>
+            <li><strong>Age adjustment.</strong> Each player's current Transfermarkt value is divided by an empirical age-discount curve to yield a peak-equivalent value, then multiplied by a shallower performance-age factor (peak at age 27, roughly 2%/yr decline through age 32, steeper thereafter).</li>
+            <li><strong>Log transform.</strong> Age-adjusted values enter the aggregation as <code>log(1 + v)</code> with <code>v</code> in millions of euros, reflecting diminishing marginal returns at the player level.</li>
+            <li><strong>Aggregation.</strong> The squad score is the mean log-value across matched players, then z-normalized across the tournament's participating teams.</li>
         </ol>
 
-        <h4 style="margin-top:12px">Log Transform (diminishing returns)</h4>
-        <p>Raw TM values are sharply right-skewed &mdash; a &euro;100M player isn't 10&times; better than a &euro;10M player, and the gap from amateur (~&euro;0) to serious professional (&euro;5&ndash;10M) is much larger than from professional to superstar. We apply a <code>log(1 + value_in_millions)</code> transform per player before averaging. This compresses the 110&times; raw team-mean spread in 2018 to about 10&times; in log space.</p>
-
-        <h4 style="margin-top:12px">Composite Rating</h4>
+        <h3>Composite Rating</h3>
         <div class="formula-block">R<sub>composite</sub> = R<sub>Elo</sub> + &beta; &middot; z<sub>squad</sub> &middot; &sigma;<sub>Elo</sub></div>
-        <p>where <code>z<sub>squad</sub></code> is the log-transformed mean squad score z-normalized across tournament teams, and <code>&sigma;<sub>Elo</sub></code> rescales into Elo-equivalent points. At <code>&beta; = 0.25</code>, a top-tier squad (z &asymp; +1.8) gets a +70 Elo bump.</p>
+        <p>Here <code>&sigma;<sub>Elo</sub></code> is the standard deviation of Elo across the tournament's teams, rescaling the squad term into Elo-equivalent points. The blend weight <code>&beta;</code> interpolates between pure Elo (<code>&beta; = 0</code>) and a squad-only rating.</p>
 
-        <h3 style="margin-top:16px">2. Rating Uncertainty</h3>
-        <p>At the start of each tournament simulation, each team's rating is sampled once from a Gaussian centered on its composite rating with <code>&sigma; = 120</code> Elo points, then held fixed for all six matches in that simulation. Over 10,000 simulations this coherently captures the idea that Elo is an estimate, not truth &mdash; a fraction of simulations will have Spain at 2150 (below France) rather than 2284, and in those Spain does not steamroll the bracket.</p>
+        <h3>Rating Uncertainty</h3>
+        <p>Each tournament simulation samples every team's rating once from a Gaussian centered on its composite rating, then holds it fixed across all six matches in that simulation:</p>
         <div class="formula-block">R<sub>T</sub><sup>(s)</sup> = R<sub>T</sub><sup>composite</sup> + &epsilon;<sub>T</sub><sup>(s)</sup>, &nbsp; &epsilon; ~ N(0, &sigma;<sup>2</sup>)</div>
+        <p>Fixing the draw within a simulation keeps each team's effective strength consistent across its matches. Match probabilities on the Groups tab use the same structure, marginalized over 400 rating samples per match.</p>
 
-        <h3 style="margin-top:16px">Calibration &amp; Findings</h3>
-        <ul style="color:var(--text-secondary);line-height:2;padding-left:20px">
-            <li>Pure-Elo match-level Brier: <strong>0.576</strong> (2018), <strong>0.615</strong> (2022) &mdash; both well below the 0.667 uniform-prediction baseline.</li>
-            <li>Joint grid search over (&beta;, &sigma;) finds a broad minimum around &beta; &isin; [0.2, 0.4], &sigma; &isin; [100, 180]. Deployed choice <strong>&beta; = 0.25, &sigma; = 120</strong> sits inside that minimum region. Pooled Brier lift &asymp; 1.2% over pure Elo.</li>
-            <li>Match-level Brier is conservative here: the <em>big</em> effect is on compounded tournament probabilities. Pre-deployment Spain was 31%; now 26%, in the 15&ndash;25% range consensus models use for top favorites. Top-3 combined share drops from 66% to 56%.</li>
-        </ul>
-        <p>Full derivations and calibration tables are in the <a href="https://github.com/e-san-miguel/football_elo/blob/main/docs/methodology_appendix.tex" target="_blank" rel="noopener">LaTeX methodology appendix</a>.</p>
+        <h3>Calibration</h3>
+        <p>The parameters <code>&beta;</code> and <code>&sigma;</code> are set by grid search to minimize pooled multiclass Brier score across the 2018 and 2022 men's World Cup match outcomes. The deployed values are <strong>&beta; = 0.25</strong> and <strong>&sigma; = 120</strong> Elo points.</p>
 
         <h2>Data Sources</h2>
         <p>Match data is provided by Mart J&uuml;risoo (CC0 public domain):</p>
@@ -113,7 +100,7 @@ export async function render(container) {
             <li><strong>Women's:</strong> <a href="https://github.com/martj42/womens-international-results" target="_blank" rel="noopener">womens-international-results</a> &mdash; 11,000+ matches from 1956 to present.</li>
             <li><strong>Men's:</strong> <a href="https://github.com/martj42/international_results" target="_blank" rel="noopener">international_results</a> &mdash; 49,000+ matches from 1872 to present.</li>
         </ul>
-        <p>The squad-strength experiment additionally uses <a href="https://github.com/jfjelstul/worldcup" target="_blank" rel="noopener">jfjelstul/worldcup</a> for historical WC rosters and <a href="https://github.com/dcaribou/transfermarkt-datasets" target="_blank" rel="noopener">dcaribou/transfermarkt-datasets</a> for Transfermarkt player valuations.</p>
+        <p>World Cup squad data for the composite rating comes from <a href="https://github.com/jfjelstul/worldcup" target="_blank" rel="noopener">jfjelstul/worldcup</a> (historical rosters) and <a href="https://github.com/dcaribou/transfermarkt-datasets" target="_blank" rel="noopener">dcaribou/transfermarkt-datasets</a> (Transfermarkt player valuations and dates of birth).</p>
 
         <h2>References</h2>
         <ul style="color:var(--text-secondary);line-height:2;padding-left:20px">
