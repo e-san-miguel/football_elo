@@ -88,6 +88,18 @@ function loadState() {
 const GOAL_BASELINE = 1.28;
 const GOAL_ELO_SCALING = 0.00215;
 const HOME_ADV = 50;
+// Rating uncertainty — matches the server-side calibration used to
+// produce the published tournament probabilities. Applied per-sim so a
+// single "Simulate Tournament" run reflects the same uncertainty model.
+const RATING_SIGMA = 120;
+
+function gaussianSample() {
+    // Box-Muller
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
 
 function eloExpected(ratingA, ratingB) {
     return 1.0 / (Math.pow(10, -(ratingA - ratingB) / 400) + 1.0);
@@ -116,7 +128,16 @@ function simKnockout(ratingA, ratingB, teamA, teamB, ha = 0) {
 }
 
 function simulateFullTournament() {
-    // 1. Simulate all group matches using Poisson scores
+    // 1. Sample each team's rating once with Gaussian uncertainty — held
+    //    fixed across all 6 matches in this simulation so the draw is
+    //    coherent (same team-form for the whole tournament).
+    const simRatings = {};
+    for (const team of Object.keys(teamRatings)) {
+        simRatings[team] = teamRatings[team] + RATING_SIGMA * gaussianSample();
+    }
+    const r = (team) => simRatings[team] ?? (1500 + RATING_SIGMA * gaussianSample());
+
+    // 2. Simulate all group matches using Poisson scores
     state.scores = {};
     state.knockoutPicks = { r32: [], r16: [], qf: [], sf: [], final: [] };
 
@@ -124,31 +145,25 @@ function simulateFullTournament() {
         const teams = GROUPS[g];
         for (const [hi, ai] of SCHEDULE[g]) {
             const home = teams[hi], away = teams[ai];
-            const rH = teamRatings[home] || 1500;
-            const rA = teamRatings[away] || 1500;
             // Host nations get home advantage
             const isHost = (home === 'United States' || home === 'Mexico' || home === 'Canada');
             const ha = isHost ? HOME_ADV : 0;
-            const [hg, ag] = simScore(rH, rA, ha);
+            const [hg, ag] = simScore(r(home), r(away), ha);
             state.scores[`${g}-${hi}-${ai}`] = { home: hg, away: ag };
         }
     }
 
-    // 2. Build R32 matchups and simulate knockout with Poisson
+    // 3. Build R32 matchups and simulate knockout with Poisson
     const r32 = buildR32Matchups();
     r32.forEach((m, i) => {
-        const rA = teamRatings[m.teamA] || 1500;
-        const rB = teamRatings[m.teamB] || 1500;
-        state.knockoutPicks.r32[i] = simKnockout(rA, rB, m.teamA, m.teamB);
+        state.knockoutPicks.r32[i] = simKnockout(r(m.teamA), r(m.teamB), m.teamA, m.teamB);
     });
 
     // R16 through Final
     for (const round of ['r16', 'qf', 'sf', 'final']) {
         const matchups = getKnockoutMatchups(round);
         matchups.forEach((m, i) => {
-            const rA = teamRatings[m.teamA] || 1500;
-            const rB = teamRatings[m.teamB] || 1500;
-            state.knockoutPicks[round][i] = simKnockout(rA, rB, m.teamA, m.teamB);
+            state.knockoutPicks[round][i] = simKnockout(r(m.teamA), r(m.teamB), m.teamA, m.teamB);
         });
     }
 
