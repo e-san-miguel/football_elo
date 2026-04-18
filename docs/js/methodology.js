@@ -71,12 +71,39 @@ export async function render(container) {
         </ol>
         <p>The probabilities shown (R32, R16, QF, SF, Final, Winner) represent the fraction of simulations in which each team reached that stage.</p>
 
+        <h2>Experimental: Squad-Strength Adjustment</h2>
+        <p style="background:var(--bg-tertiary);padding:12px 14px;border-radius:8px;border-left:3px solid var(--accent);font-size:0.92rem">
+            <strong>Status:</strong> offline research only. The calibrated weight did not clear our 5% Brier-lift decision gate, so published predictions continue to use pure Elo. This section documents the experiment for transparency.
+        </p>
+
+        <p>National teams play 8&ndash;12 matches per year, so Elo can lag meaningful roster changes. To test whether injecting squad-level information helps, we joined World Cup rosters from <a href="https://github.com/jfjelstul/worldcup" target="_blank" rel="noopener">jfjelstul/worldcup</a> with historical Transfermarkt market values from <a href="https://github.com/dcaribou/transfermarkt-datasets" target="_blank" rel="noopener">dcaribou/transfermarkt-datasets</a> to build an age-adjusted squad score for each national team.</p>
+
+        <h3 style="margin-top:16px">Age Adjustment (two-step)</h3>
+        <p>Transfermarkt discounts aging players more aggressively than on-field performance actually declines. We correct in two steps:</p>
+        <ol style="color:var(--text-secondary);line-height:2;padding-left:20px">
+            <li><strong>Recover peak-equivalent talent:</strong> divide current TM value by the empirical age-discount curve &mdash; a 32-year-old at &euro;60M with peak &euro;100M recovers to &asymp;&euro;94M.</li>
+            <li><strong>Apply performance decay:</strong> multiply by a shallower performance-age factor from the soccer-aging literature (peak &asymp; 27, ~2%/yr decline through age 32, then steeper).</li>
+        </ol>
+
+        <h3 style="margin-top:16px">Composite Rating</h3>
+        <div class="formula-block">R<sub>composite</sub> = R<sub>Elo</sub> + &beta; &middot; z<sub>squad</sub> &middot; &sigma;<sub>Elo</sub></div>
+        <p>where <code>z<sub>squad</sub></code> is the team's age-adjusted mean squad value, z-normalized across the 32 tournament teams, and <code>&sigma;<sub>Elo</sub></code> rescales the bump into Elo-equivalent points. The single parameter <code>&beta;</code> is fit via grid search to minimize mean multiclass Brier score across the 2018 and 2022 men's World Cup matches.</p>
+
+        <h3 style="margin-top:16px">Findings</h3>
+        <ul style="color:var(--text-secondary);line-height:2;padding-left:20px">
+            <li>Pure-Elo match-level Brier: <strong>0.576</strong> (2018), <strong>0.615</strong> (2022). Both well under the 0.667 uniform-prediction baseline &mdash; Elo has real signal.</li>
+            <li>Best <code>&beta;</code> = <strong>0.1</strong>, improving pooled Brier by only <strong>0.15%</strong>. Cross-validated lift: +0.14% / +0.19%.</li>
+            <li>The squad z-score correlates with Elo at <strong>0.76&ndash;0.80</strong> &mdash; Elo already captures most squad-quality information, so the marginal signal from TM values is small over 128 backtest matches.</li>
+        </ul>
+        <p>A thorough write-up with formulas and derivations is in the <a href="https://github.com/e-san-miguel/football_elo/blob/main/docs/methodology_appendix.tex" target="_blank" rel="noopener">LaTeX methodology appendix</a>.</p>
+
         <h2>Data Sources</h2>
         <p>Match data is provided by Mart J&uuml;risoo (CC0 public domain):</p>
         <ul style="color:var(--text-secondary);line-height:2;padding-left:20px">
             <li><strong>Women's:</strong> <a href="https://github.com/martj42/womens-international-results" target="_blank" rel="noopener">womens-international-results</a> &mdash; 11,000+ matches from 1956 to present.</li>
             <li><strong>Men's:</strong> <a href="https://github.com/martj42/international_results" target="_blank" rel="noopener">international_results</a> &mdash; 49,000+ matches from 1872 to present.</li>
         </ul>
+        <p>The squad-strength experiment additionally uses <a href="https://github.com/jfjelstul/worldcup" target="_blank" rel="noopener">jfjelstul/worldcup</a> for historical WC rosters and <a href="https://github.com/dcaribou/transfermarkt-datasets" target="_blank" rel="noopener">dcaribou/transfermarkt-datasets</a> for Transfermarkt player valuations.</p>
 
         <h2>References</h2>
         <ul style="color:var(--text-secondary);line-height:2;padding-left:20px">

@@ -6,6 +6,7 @@
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{textcomp}
 
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
 
@@ -336,6 +337,158 @@ For each of the 48 teams, the simulation reports:
 By construction, $\sum_{i=1}^{48} P_i(\text{Winner}) = 1$ and for each team, $P(\text{R32}) \geq P(\text{R16}) \geq P(\text{QF}) \geq P(\text{SF}) \geq P(\text{Final}) \geq P(\text{Winner})$.
 
 %----------------------------------------------------------------------
+\section{Experimental: Squad-Strength Adjustment}
+\label{sec:squadstrength}
+%----------------------------------------------------------------------
+
+\subsection{Motivation}
+
+National teams play only 8--12 matches per year, so Elo ratings can lag meaningful roster changes. A team whose squad has dramatically improved may carry an outdated rating, and aging superstars whose on-field contribution remains high are not distinguished from declining players by Elo alone. This section documents an experiment to inject player-level squad-strength information via Transfermarkt (TM) market values, with calibration against historical World Cups.
+
+\paragraph{Status.} The calibrated weight does not clear the decision gate described in Section~\ref{sec:squadcalibration}. The published predictions continue to use pure Elo. This section is preserved for methodological transparency and to support future iteration.
+
+\subsection{Data Sources}
+
+Three datasets are joined:
+\begin{itemize}[nosep]
+    \item \textbf{World Cup rosters:} jfjelstul/worldcup \url{https://github.com/jfjelstul/worldcup} --- 13{,}843 player-tournament records covering all men's WCs 1930--2022.
+    \item \textbf{Historical player market values:} dcaribou/transfermarkt-datasets \url{https://github.com/dcaribou/transfermarkt-datasets} --- 616{,}000 player-valuation records with dates.
+    \item \textbf{Player metadata:} Same repository. Provides date of birth, nationality, and peak career TM value per player.
+\end{itemize}
+
+Players are matched across datasets via a three-stage procedure: (i) exact normalized full-name plus country match; (ii) last-name plus country, restricted to uniquely identifiable names within a country; (iii) token-subset match within country. The procedure achieves an 88\% overall match rate with 100\% for top European nations; match rates for Brazil, Iran, and Saudi Arabia are 60--75\% due to nickname and transliteration conventions.
+
+\subsection{Age Adjustment}
+
+TM market values discount aging players more aggressively than on-field performance actually declines --- resale value and contract length dominate the pricing of older players. To recover a performance-oriented proxy, we apply a two-step correction.
+
+\paragraph{Step 1: Recover peak-equivalent talent.} Divide the current TM value by TM's age-discount factor:
+\begin{equation}
+L(v, a) = \frac{v}{d_{\text{TM}}(a)}
+\label{eq:age_step1}
+\end{equation}
+where $d_{\text{TM}}(a)$ is the empirical mean ratio $\mathbb{E}[v(a) / v_{\text{peak}}]$ for a sample of players with long TM histories. The built-in approximation used in this implementation is:
+\[
+d_{\text{TM}}(a) = \begin{cases}
+1.0 & a \leq 26 \\
+1.0 - 0.06\,(a - 26) & 27 \leq a \leq 32 \\
+\max\{0.10,\; 0.64 - 0.15\,(a - 32)\} & a \geq 33
+\end{cases}
+\]
+
+\paragraph{Step 2: Apply on-field performance decay.} Multiply recovered talent by a shallower performance-age factor consistent with published soccer-aging literature:
+\begin{equation}
+\text{adj}(v, a) = L(v, a) \cdot p(a)
+\label{eq:age_step2}
+\end{equation}
+with
+\[
+p(a) = \begin{cases}
+\max\{0.85,\; 1.0 - 0.02\,(27 - a)\} & a \leq 27 \\
+1.0 - 0.02\,(a - 27) & 28 \leq a \leq 32 \\
+0.90 - 0.04\,(a - 32) & 33 \leq a \leq 36 \\
+\max\{0.40,\; 0.74 - 0.07\,(a - 36)\} & a \geq 37
+\end{cases}
+\]
+
+\paragraph{Example.} A 32-year-old valued at \texteuro 60M with a TM peak of \texteuro 100M has $d_{\text{TM}}(32) = 0.64$, giving $L = \texteuro 94$M. Applying $p(32) = 0.90$ yields $\text{adj} = \texteuro 85$M, close to his peak --- capturing that his on-field level remains near-peak despite TM's discount.
+
+\subsection{Squad Score}
+
+A team's squad score is the \emph{mean} age-adjusted value across matched players:
+\begin{equation}
+S_T = \frac{1}{|\mathcal{P}_T|} \sum_{p \in \mathcal{P}_T} \text{adj}(v_p, a_p)
+\label{eq:squad_score}
+\end{equation}
+where $\mathcal{P}_T$ is the set of players in team $T$'s squad with valid TM data. Mean aggregation is robust to variable squad sizes across tournaments (23 in 2018, 26 in 2022) and to variable match rates across nations.
+
+Squad scores are z-normalized across the teams in a given tournament:
+\begin{equation}
+z_T = \frac{S_T - \bar{S}}{\sigma_S}
+\label{eq:squad_z}
+\end{equation}
+
+\subsection{Composite Rating and Calibration}
+\label{sec:squadcalibration}
+
+The composite rating is a one-parameter blend of Elo and the z-normalized squad score:
+\begin{equation}
+R_T^{\text{composite}} = R_T^{\text{Elo}} + \beta \cdot z_T \cdot \sigma_{\text{Elo}}
+\label{eq:composite}
+\end{equation}
+where $\sigma_{\text{Elo}}$ is the standard deviation of Elo across the tournament's participating teams. This rescaling keeps the squad bump in Elo-equivalent units. At $\beta = 0$ the model reduces to pure Elo; at $\beta = 1$ a one-$\sigma$ squad advantage contributes a full Elo-$\sigma$ boost.
+
+\paragraph{Calibration objective.} We grid-search $\beta \in \{0.0, 0.1, \ldots, 1.5\}$ on the pooled match outcomes of the 2018 and 2022 men's World Cups, minimizing the mean multiclass Brier score:
+\[
+\mathcal{B}(p, y) = \sum_{k \in \{W, D, L\}} \bigl(p_k - \mathbb{1}\{y = k\}\bigr)^2
+\]
+applied to every match in the two tournaments.
+
+\paragraph{Cross-validation.} $\beta$ is fit on one tournament and evaluated on the other, reporting out-of-sample Brier lift.
+
+\paragraph{Decision gate.} A 5\% out-of-sample Brier improvement over pure Elo is required before the composite is deployed to published predictions.
+
+\subsection{Results}
+
+Pure-Elo match-level Brier baselines are shown in Table~\ref{tab:brier_baseline}. Both are well below the 0.667 uniform-prediction baseline, confirming Elo has predictive signal.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Tournament & Brier & Log-loss \\
+\midrule
+2018 (Russia) & 0.5763 & 0.9735 \\
+2022 (Qatar)  & 0.6146 & 1.0586 \\
+\midrule
+Uniform baseline & 0.667 & 1.099 \\
+\bottomrule
+\end{tabular}
+\caption{Pure-Elo match-level scores on the two calibration World Cups.}
+\label{tab:brier_baseline}
+\end{table}
+
+The grid search selects $\beta^\star = 0.1$ with pooled Brier 0.5952, versus 0.5954 for pure Elo --- a 0.15\% relative lift, far below the decision gate. Cross-validated lifts are $+0.14\%$ (train 2022, test 2018) and $+0.19\%$ (train 2018, test 2022).
+
+\paragraph{Diagnosis.} The normalized squad score $z_T$ has Pearson correlation of $0.80$ (2018) and $0.79$ (2022) with normalized Elo. Elo already captures the bulk of squad-quality information --- strong teams accumulate high Elo because they have good rosters. The residual squad signal orthogonal to Elo is small and noisy over the 128-match backtest window.
+
+\paragraph{Statistical power.} With per-match Brier standard deviation $\approx 0.3$ and $n = 128$ matches, the standard error on the mean is $\approx 0.027$. A true 5\% lift ($\approx 0.030$ Brier points) would be detectable at roughly 50\% power; a 2\% lift ($\approx 0.012$ points) requires on the order of 1{,}100 matches. The backtest can rule out large effects but is underpowered for small ones.
+
+\subsection{Illustrative 2026 Output}
+
+Applying the composite rating at $\beta = 0.1$ to current TM squads (players active in the 2023/24 season or later, top 26 by market value per team) yields the tournament-level shifts shown in Table~\ref{tab:composite2026}. France gains the most because its squad is the most talent-dense in the field; Mexico loses ground relative to Portugal, reflecting that Elo was overvaluing Mexico's host-boosted rating.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Team & Elo & Composite & Pure $P(\text{Win})$ & Composite $P(\text{Win})$ \\
+\midrule
+Spain     & 2218 & 2255 & 32.0\% & 34.4\% \\
+Argentina & 2179 & 2199 & 19.8\% & 18.3\% \\
+France    & 2137 & 2181 & 14.6\% & 18.5\% \\
+England   & 2084 & 2126 & 6.4\%  & 7.9\%  \\
+Brazil    & 2045 & 2077 & 3.5\%  & 4.0\%  \\
+Portugal  & 2035 & 2059 & 2.7\%  & 2.9\%  \\
+Mexico    & 1912 & 1905 & 2.1\%  & 1.1\%  \\
+\bottomrule
+\end{tabular}
+\caption{Illustrative 2026 WC win probabilities: pure Elo vs composite ($\beta = 0.1$). These outputs are not currently used on the live site.}
+\label{tab:composite2026}
+\end{table}
+
+\subsection{Next Steps}
+
+To improve statistical power and explore less-correlated signals, future iterations could:
+\begin{itemize}[nosep]
+    \item Extend calibration to 2006, 2010, and 2014 WCs (the data sources cover these years, roughly tripling the match sample).
+    \item Extend to UEFA Euro 2016/2020/2024 and Copa Am\'erica editions for additional tournament-level observations.
+    \item Fit the TM age-discount curve empirically via \texttt{fit\_tm\_age\_discount()} rather than using the built-in approximation.
+    \item Replace or supplement TM values with starting-XI club Elo weighted by minutes --- a signal less directly captured by international Elo.
+    \item Fit a logistic regression directly on match outcomes with EloZ and SquadZ as features, allowing the data to pick coefficients rather than a one-parameter blend.
+\end{itemize}
+
+%----------------------------------------------------------------------
 \section*{References}
 %----------------------------------------------------------------------
 
@@ -344,6 +497,8 @@ By construction, $\sum_{i=1}^{48} P_i(\text{Winner}) = 1$ and for each team, $P(
     \item World Football Elo Ratings. \url{https://www.eloratings.net/about}.
     \item J\"urisoo, M. Women's International Football Results. \url{https://github.com/martj42/womens-international-results}.
     \item J\"urisoo, M. International Football Results. \url{https://github.com/martj42/international_results}.
+    \item Fjelstul, J. \textit{A Comprehensive Database on the FIFA World Cup.} \url{https://github.com/jfjelstul/worldcup}.
+    \item dcaribou. \textit{Transfermarkt Datasets.} \url{https://github.com/dcaribou/transfermarkt-datasets}.
 \end{enumerate}
 
 \end{document}

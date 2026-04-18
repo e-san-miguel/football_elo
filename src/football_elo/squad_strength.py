@@ -10,23 +10,34 @@ from .player_strength import adjusted_value
 
 
 def squad_score_for_team(team_rows: pd.DataFrame,
-                         tm_curve: dict[int, float] | None = None) -> float:
-    """Sum of age-adjusted TM values across a team's squad (EUR)."""
-    total = 0.0
+                         tm_curve: dict[int, float] | None = None,
+                         agg: str = "mean") -> float:
+    """Age-adjusted TM value aggregated across a team's squad.
+
+    agg='mean' averages across players with valid TM data — robust to missing
+    players and to squad-size changes (23 in 2018 → 26 in 2022).
+    agg='sum' sums total squad value (sensitive to squad size + missing data).
+    """
+    vals: list[float] = []
     for _, r in team_rows.iterrows():
         v = r.get('value_at_kickoff')
         a = r.get('age_at_kickoff')
         if pd.isna(v) or pd.isna(a):
             continue
-        total += adjusted_value(float(v), float(a), tm_curve)
-    return total
+        vals.append(adjusted_value(float(v), float(a), tm_curve))
+    if not vals:
+        return 0.0
+    if agg == "mean":
+        return sum(vals) / len(vals)
+    return sum(vals)
 
 
 def squad_scores(squad_df: pd.DataFrame,
-                 tm_curve: dict[int, float] | None = None) -> dict[str, float]:
+                 tm_curve: dict[int, float] | None = None,
+                 agg: str = "mean") -> dict[str, float]:
     """Return {team: score} from a squad DataFrame for a single tournament."""
     return {
-        team: squad_score_for_team(rows, tm_curve)
+        team: squad_score_for_team(rows, tm_curve, agg=agg)
         for team, rows in squad_df.groupby('team')
     }
 
