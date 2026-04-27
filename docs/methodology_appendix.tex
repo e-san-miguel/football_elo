@@ -228,12 +228,12 @@ Tournament predictions are generated via Monte Carlo simulation of the complete 
 
 Match scores are predicted using an Elo-calibrated Poisson model. For each team, the expected number of goals is:
 \begin{equation}
-\lambda_A = \mu \cdot e^{c \cdot d_r}, \qquad \lambda_B = \mu \cdot e^{-c \cdot d_r}
+\lambda_A = \mu \cdot \exp\!\big(c \cdot d_r + c_2 \cdot d_r^2\big), \qquad \lambda_B = \mu \cdot \exp\!\big(-c \cdot d_r + c_2 \cdot d_r^2\big)
 \label{eq:poisson}
 \end{equation}
-where $d_r = (R_A + H_A) - R_B$ is the adjusted rating difference (including home advantage $H = 50$ for the home team, $0$ for neutral venues), $\mu = 1.28$ is the baseline expected goals per team, and $c = 0.00215$ is the Elo scaling factor.
+where $d_r = (R_A + H_A) - R_B$ is the adjusted rating difference (including home advantage $H = 50$ for the home team, $0$ for neutral venues). The deployed parameters are $\mu = 1.241$ (baseline expected goals per team), $c = 2.17 \times 10^{-3}$ (linear Elo scaling), and $c_2 = -5.25 \times 10^{-7}$ (quadratic term). The negative $c_2$ encodes sublinearity at extreme rating gaps---without it, the linear model extrapolates poorly into the high-$|d_r|$ regime that the rating-uncertainty Monte Carlo (Section~\ref{sec:wcuncertainty}) can produce.
 
-Both parameters were estimated via log-linear regression on 98,430 team-match records from our historical dataset. The model uses the same $+50$ home advantage rule as the Elo rating system, ensuring consistency between ratings and predictions.
+\paragraph{Calibration.} Parameters were estimated by Poisson GLM with log link, fit on 64,202 team-match rows constructed by replaying Elo on men's international results from 1990 onward (49,215 matches; the dataset includes friendlies). Each match contributes two rows---one per team perspective---with $d_r$ taking opposite signs. Standard errors are clustered by match. Adding $d_r^2$ to a linear-only specification reduces AIC by 552 and substantially improves the calibration of the upper tail. A separate home-team dummy is also significant in the goal model ($+0.122$ log-goals, $z = 15$), but production code keeps the symmetric two-coefficient form $\lambda(d_r)$ because home advantage is already encoded at the rating layer through $H = 50$. The full fit specification, including the diagnostic with the home dummy, is implemented in \texttt{src/football\_elo/calibrate\_poisson.py}.
 
 Goals for each team are sampled independently from Poisson distributions:
 \[

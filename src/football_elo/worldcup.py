@@ -169,9 +169,15 @@ THIRD_PLACE_SLOTS = [1, 4, 6, 7, 8, 9, 12, 14]
 THIRD_PLACE_OPPONENTS = ["E", "I", "A", "L", "D", "G", "B", "K"]
 
 
-# Poisson score model parameters (calibrated from 98K match records)
-GOAL_BASELINE = 1.28      # baseline expected goals per team
-GOAL_ELO_SCALING = 0.00215  # Elo scaling factor
+# Poisson score model parameters. Calibrated by
+# src/football_elo/calibrate_poisson.py against 64,202 team-match rows
+# from men's international results since 1990. The dr^2 term is
+# negative, encoding sublinearity in the rating gap — without it the
+# linear model extrapolates badly into the high-|dr| regime that the
+# WC2026 simulator's rating-noise generator can produce.
+GOAL_BASELINE = 1.2414
+GOAL_ELO_SCALING = 0.002174
+GOAL_ELO_SCALING_SQ = -5.246e-7
 
 
 def _expected_goals(rating_a: float, rating_b: float, ha: float = 0.0):
@@ -181,8 +187,9 @@ def _expected_goals(rating_a: float, rating_b: float, ha: float = 0.0):
     Returns (lambda_a, lambda_b).
     """
     dr = (rating_a + ha) - rating_b
-    lam_a = GOAL_BASELINE * math.exp(GOAL_ELO_SCALING * dr)
-    lam_b = GOAL_BASELINE * math.exp(-GOAL_ELO_SCALING * dr)
+    quad = GOAL_ELO_SCALING_SQ * dr * dr
+    lam_a = GOAL_BASELINE * math.exp(GOAL_ELO_SCALING * dr + quad)
+    lam_b = GOAL_BASELINE * math.exp(-GOAL_ELO_SCALING * dr + quad)
     return lam_a, lam_b
 
 

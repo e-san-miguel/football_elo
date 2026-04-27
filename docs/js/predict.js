@@ -6,8 +6,9 @@
 import { getRankings, getTeamFlags } from './data.js';
 import { el, flagImg, formatRating } from './utils.js';
 
-const GOAL_BASELINE = 1.28;
-const GOAL_ELO_SCALING = 0.00215;
+const GOAL_BASELINE = 1.2414;
+const GOAL_ELO_SCALING = 0.002174;
+const GOAL_ELO_SCALING_SQ = -5.246e-7;
 const HOME_ADV = 50;
 const MAX_GOALS = 10;
 
@@ -28,8 +29,9 @@ function computePrediction(ratingA, ratingB, v) {
     if (v === 'home_a') ha = HOME_ADV;
     else if (v === 'home_b') ha = -HOME_ADV;
     const dr = (ratingA - ratingB) + ha;
-    const lamA = GOAL_BASELINE * Math.exp(GOAL_ELO_SCALING * dr);
-    const lamB = GOAL_BASELINE * Math.exp(-GOAL_ELO_SCALING * dr);
+    const quad = GOAL_ELO_SCALING_SQ * dr * dr;
+    const lamA = GOAL_BASELINE * Math.exp(GOAL_ELO_SCALING * dr + quad);
+    const lamB = GOAL_BASELINE * Math.exp(-GOAL_ELO_SCALING * dr + quad);
 
     const pA = [], pB = [];
     for (let k = 0; k <= MAX_GOALS; k++) {

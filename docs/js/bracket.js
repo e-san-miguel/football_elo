@@ -83,10 +83,15 @@ function loadState() {
     } catch {}
 }
 
-// ===== Poisson Score Model (calibrated from 98K match records) =====
+// ===== Poisson Score Model =====
+// Calibrated by src/football_elo/calibrate_poisson.py on 64K team-match
+// rows from men's international results since 1990. The negative dr^2
+// term encodes sublinearity in the rating gap — keeps lambda bounded
+// when the rating-noise generator produces extreme |dr|.
 
-const GOAL_BASELINE = 1.28;
-const GOAL_ELO_SCALING = 0.00215;
+const GOAL_BASELINE = 1.2414;
+const GOAL_ELO_SCALING = 0.002174;
+const GOAL_ELO_SCALING_SQ = -5.246e-7;
 const HOME_ADV = 50;
 // Rating uncertainty — matches the server-side calibration used to
 // produce the published tournament probabilities. Applied per-sim so a
@@ -114,8 +119,9 @@ function poissonSample(lam) {
 
 function simScore(ratingA, ratingB, ha = 0) {
     const dr = (ratingA + ha) - ratingB;
-    const lamA = GOAL_BASELINE * Math.exp(GOAL_ELO_SCALING * dr);
-    const lamB = GOAL_BASELINE * Math.exp(-GOAL_ELO_SCALING * dr);
+    const quad = GOAL_ELO_SCALING_SQ * dr * dr;
+    const lamA = GOAL_BASELINE * Math.exp(GOAL_ELO_SCALING * dr + quad);
+    const lamB = GOAL_BASELINE * Math.exp(-GOAL_ELO_SCALING * dr + quad);
     return [poissonSample(lamA), poissonSample(lamB)];
 }
 

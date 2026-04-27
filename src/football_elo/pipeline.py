@@ -14,11 +14,16 @@ class EloSystem:
         self,
         initial_rating: float = INITIAL_RATING,
         home_advantage: float = HOME_ADVANTAGE,
+        snapshots: list[dict] | None = None,
     ):
         self.initial_rating = initial_rating
         self.home_advantage = home_advantage
         self.ratings: dict[str, float] = {}
         self.history: list[dict] = []
+        # Optional pre-match snapshot sink. Used by calibrate_poisson.py to
+        # collect (R_home_pre, R_away_pre, goals, ...) tuples without
+        # rerunning Elo from scratch.
+        self.snapshots = snapshots
 
     def get_rating(self, team: str) -> float:
         return self.ratings.get(team, self.initial_rating)
@@ -56,6 +61,16 @@ class EloSystem:
         new_away = r_away + delta_away
 
         date = row["date"]
+
+        if self.snapshots is not None:
+            self.snapshots.append({
+                "date": date,
+                "home_team": home, "away_team": away,
+                "r_home_pre": r_home, "r_away_pre": r_away,
+                "is_neutral": is_neutral,
+                "home_score": home_score, "away_score": away_score,
+                "tournament": tournament,
+            })
 
         # Record history for both teams
         self.history.append({
